@@ -1,6 +1,10 @@
 const core   = require('@actions/core');
 const github = require('@actions/github');
 
+function compareTags(a,b) {
+
+}
+
 async function action() {
     const nameToGreet = core.getInput('dry-run');
     const token = core.getInput('github-token');
@@ -17,16 +21,23 @@ async function action() {
     });
 
     const tags = data.map((tag) => tag.name);
-    const splitTags = tags.map(tag => (tag.startsWith("v") ? tag.slice(2) : tag).split(/\./))
 
-    console.log(`The repo tags: ${ JSON.stringify(splitTags, undefined, 2) }`);
+    const latestTag = tags.shift();
+    core.setOutput("tag", latestTag.name);
+
+    const splitTags = (latestTag.startsWith("v") ? latestTag.slice(1) : latestTag).split(/\./);
+
+    console.log(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
+
+    // find the max(major, minor, and patch)
+
     // get tag list
 
     core.setOutput("new-tag", "hello world");
-    core.setOutput("tag", time);
+    
 
     const payload = JSON.stringify(github.context, undefined, 2)
-    console.log(`The event payload: ${payload}`);
+    // console.log(`The event payload: ${payload}`);
 }
 
 action()
