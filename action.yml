@@ -1,9 +1,9 @@
 name: 'jstest'
 description: 'figuring out how to call git meta data from gh actions'
 inputs:
-  # github-token:  # id of input
-  #   description: 'the GH token to connect to github from the action'
-  #   required: false
+  github-token:  # id of input
+    description: 'the GH token to connect to github from the action'
+    required: false
   dry-run: 
     description: "check if the action would succeed"
     required: false
