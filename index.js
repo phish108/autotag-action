@@ -17,7 +17,7 @@ async function action() {
     });
 
     const tags = data.map((tag) => tag.name);
-    const splitTags = tags.map(tag => tag.split(/[\w\.]/))
+    const splitTags = tags.map(tag => (tag.startsWith("v") ? tag.slice(2) : tag).split(/\./))
 
     console.log(`The repo tags: ${ JSON.stringify(splitTags, undefined, 2) }`);
     // get tag list
