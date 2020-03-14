@@ -510,8 +510,8 @@ async function action() {
 
     const { data } = await octokit.repos.listTags({
         owner: github.context.payload.repository.owner.name,
-        repo: github.context.payload.repository.full_name
-    })
+        repo: github.context.payload.repository.name
+    });
 
     console.log(`The repo tags: ${ JSON.stringify(data, undefined, 2) }`);
     // get tag list
