@@ -3,11 +3,15 @@ description: 'figuring out how to call git meta data from gh actions'
 inputs:
   github-token:  # id of input
     description: 'the GH token to connect to github from the action'
-    required: false
+    required: true
   dry-run: 
     description: "check if the action would succeed"
     required: false
     default: "FALSE"
+  bump: 
+    description: "which part of the semver needs to be updated?"
+    required: true
+    default: "minor"
 outputs:
   new-tag: # id of output
     description: 'new tag'
