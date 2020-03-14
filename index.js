@@ -20,9 +20,9 @@ async function action() {
         repo: github.context.payload.repository.name
     });
 
-    const tags = data.map((tag) => tag.name);
+    // const tags = data.map((tag) => tag);
 
-    const latestTag = tags.shift();
+    const latestTag = data.shift();
     core.setOutput("tag", latestTag.name);
 
     const splitTags = (latestTag.startsWith("v") ? latestTag.slice(1) : latestTag).split(/\./);
