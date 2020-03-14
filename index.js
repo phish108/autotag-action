@@ -1,4 +1,4 @@
-const core = require('@actions/core');
+const core   = require('@actions/core');
 const github = require('@actions/github');
 
 async function action() {
@@ -16,7 +16,10 @@ async function action() {
         repo: github.context.payload.repository.name
     });
 
-    console.log(`The repo tags: ${ JSON.stringify(data, undefined, 2) }`);
+    const tags = data.map((tag) => tag.name);
+    const splitTags = tags.map(tag => tag.split(/\w | \./))
+
+    console.log(`The repo tags: ${ JSON.stringify(splitTags, undefined, 2) }`);
     // get tag list
 
     core.setOutput("new-tag", "hello world");

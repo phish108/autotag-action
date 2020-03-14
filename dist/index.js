@@ -495,7 +495,7 @@ module.exports = require("os");
 /***/ 104:
 /***/ (function(__unusedmodule, __unusedexports, __webpack_require__) {
 
-const core = __webpack_require__(470);
+const core   = __webpack_require__(470);
 const github = __webpack_require__(469);
 
 async function action() {
@@ -513,7 +513,10 @@ async function action() {
         repo: github.context.payload.repository.name
     });
 
-    console.log(`The repo tags: ${ JSON.stringify(data, undefined, 2) }`);
+    const tags = data.map((tag) => tag.name);
+    const splitTags = tags.map(tag => tag.split(/\w | \./))
+
+    console.log(`The repo tags: ${ JSON.stringify(splitTags, undefined, 2) }`);
     // get tag list
 
     core.setOutput("new-tag", "hello world");
