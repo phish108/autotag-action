@@ -4,6 +4,7 @@ const github = require('@actions/github');
 try {
     // `who-to-greet` input defined in action metadata file
     const nameToGreet = core.getInput('dry-run');
+    const token = core.getInput('github-token');
     
     console.log(`Hello ${nameToGreet}!`);
     
