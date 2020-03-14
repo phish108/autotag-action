@@ -1,8 +1,7 @@
 const core = require('@actions/core');
 const github = require('@actions/github');
 
-try {
-    // `who-to-greet` input defined in action metadata file
+async function action() {
     const nameToGreet = core.getInput('dry-run');
     const token = core.getInput('github-token');
     
@@ -10,14 +9,23 @@ try {
     
     const time = (new Date()).toTimeString();
 
+    const octokit = new github.GitHub(token);
+
+    const { data } = await octokit.repos.listTags({
+        owner: github.context.payload.repository.owner.name,
+        repo: github.context.payload.repository.full_name
+    })
+
+    console.log(`The repo tags: ${ JSON.stringify(data, undefined, 2) }`);
+    // get tag list
+
     core.setOutput("new-tag", "hello world");
     core.setOutput("tag", time);
 
-    // Get the JSON webhook payload for the event that triggered the workflow
     const payload = JSON.stringify(github.context, undefined, 2)
     console.log(`The event payload: ${payload}`);
+}
 
-  } 
-  catch (error) {
-    core.setFailed(error.message);
-  }
+action()
+    .then(() => console.log("success"))
+    .catch(error => core.setFailed(error.message))
