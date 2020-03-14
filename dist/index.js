@@ -2287,13 +2287,13 @@ const github = __webpack_require__(469);
 const semver = __webpack_require__(876);
 
 async function action() {
-    const nameToGreet = core.getInput('dry-run');
+    const dryRun = core.getInput('dry-run').toLowerCase();
     const token = core.getInput('github-token');
     const level = core.getInput('bump');
-    
-    console.log(`Hello ${nameToGreet}!`);
-    
-    const time = (new Date()).toTimeString();
+
+    const releaseBranch = "master";
+    // release branchs other than master
+    const curBranch = github.context.ref.split("/").pop()   
 
     const octokit = new github.GitHub(token);
 
@@ -2305,22 +2305,33 @@ async function action() {
     const latestTag = data.shift();
     core.setOutput("tag", latestTag.name);
 
+    if (latestTag.commit.sha === github.context.sha) {
+        console.log("nothing to commit");
+        core.setOutput("new-tag", latestTag.name);
+        return;
+    }
+
     console.log(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
 
     const version = semver.clean(latestTag.name);
-    const nextVersion = semver.inc(version, level);
+    let nextVersion = semver.inc(version, level);
+
+    console.log(`current branch is ${curBranch}`);
+
+    if (curBranch !== releaseBranch) {
+        nextVersion = semver.inc(version, "pre"+level, github.context.sha.slice(0, 6));
+    }
 
     console.log( `bump tag ${ nextVersion }` );
 
-    // find the max(major, minor, and patch)
-
-    // get tag list
-
     core.setOutput("new-tag", nextVersion);
-    
 
     const payload = JSON.stringify(github.context, undefined, 2)
-    console.log(`The event payload: ${payload}`);
+    // console.log(`The event payload: ${payload}`);
+
+    if (dryRun === "false") {
+        // TODO perform release on the current sha
+    }
 }
 
 action()
