@@ -35,3 +35,7 @@ jobs:
     - run: git commit -m "updated dist file $GITSHA" -a 
       env:
         GITSHA: ${{ github.sha }}
+    - name: Push changes
+      uses: ad-m/github-push-action@master
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
