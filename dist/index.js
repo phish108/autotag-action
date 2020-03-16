@@ -2294,7 +2294,9 @@ async function getLatestTag(octokit, repository) {
 
     console.log( `all tags are: ${ JSON.stringify(data, undefined, 2)}` );
 
-    return data.shift();
+    data.sort((a, b) => semver.compare(semver.clean(a), semver.clean(b)));
+
+    return data.pop();
 }
 
 async function loadBranch(octokit, branch) {
