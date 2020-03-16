@@ -2300,13 +2300,15 @@ async function getLatestTag(octokit, repository) {
 }
 
 async function loadBranch(octokit, branch) {
-    const { data } = await octokit.git.listMatchingRefs({
+    const result = await octokit.git.listMatchingRefs({
         owner: github.context.payload.repository.owner.name,
         repo: github.context.payload.repository.name,
         ref: `heads/${branch}`
     });
     
-    return data.shift();
+    console.log(JSON.stringify(result, undefined, 2));
+
+    return result.data.shift();
 }
 
 async function action() {
