@@ -2317,7 +2317,7 @@ async function action() {
     const level = core.getInput('bump');
     const forceBranch = core.getInput('branch');
     const releaseBranch = core.getInput('release-branch');
-    
+
     const withV = core.getInput('with-v').toLowerCase() === "false" ? "" : "v";
 
     if (forceBranch) {
@@ -2358,7 +2358,8 @@ async function action() {
 
     if (latestTag.commit.sha === github.context.sha) {
         console.log("no new commits, avoid tagging");
-        core.setOutput("new-tag", latestTag.name);
+
+        // core.setOutput("new-tag", latestTag.name);
         return;
     }
 
@@ -2379,7 +2380,7 @@ async function action() {
     core.setOutput("new-tag", nextVersion);
 
     if (dryRun === "false") {
-        console.log(`execute version bump to ${nextVersion}`);
+        console.log(`add tag ${nextVersion} to ${ curBranch }`);
     
         const ref = `refs/tags/${withV}${nextVersion}`;
 
@@ -2389,8 +2390,6 @@ async function action() {
             ref,
             sha: actionSha
         });
-
-        console.log(`tagging result ${ JSON.stringify(result, undefined,2) }`);
     }
 }
 
