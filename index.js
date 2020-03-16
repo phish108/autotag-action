@@ -8,6 +8,8 @@ async function getLatestTag(octokit, repository) {
         repo:  repository.name
     });
 
+    console.log( `all tags are: ${ JSON.stringify(data, undefined, 2)}` );
+
     return data.shift();
 }
 
