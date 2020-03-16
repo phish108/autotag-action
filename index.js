@@ -74,11 +74,14 @@ async function action() {
     if (dryRun === "false") {
         console.log(`execute version bump to ${nextVersion}`);
         // TODO perform release on the current sha
+        const ref = `refs/tags/${nextVersion}`;
+
+        console.log(`ref is ${ ref }` );
 
         const result = await octokit.git.createRef({
             owner: github.context.payload.repository.owner.name,
             repo: github.context.payload.repository.name,
-            ref: `refs/tags/${nextVersion}`,
+            ref,
             sha: actionSha
         });
 
