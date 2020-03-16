@@ -16,6 +16,14 @@ inputs:
     description: "force to tag a specific branch"
     required: false
     default: ""
+  with-v: 
+    description: "use version prefix"
+    required: false
+    default: "FALSE"
+  release-branch: 
+    description: "provide the names from which branches to release"
+    required: true
+    default: "master"
 outputs:
   new-tag: # id of output
     description: 'new tag'
