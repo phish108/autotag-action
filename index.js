@@ -18,12 +18,14 @@ async function action() {
     const octokit = new github.GitHub(token);
 
     // if force branch
-    const list = await octokit.git.listMatchingRefs({
+    console.log("fetch matchin heads");
+    
+    const listHead = await octokit.git.listMatchingRefs({
         owner: github.context.payload.repository.owner.name,
         repo: github.context.payload.repository.name,
         ref: `heads/${curBranch}`
     });
-
+    
     console.log(`maching refs: ${ JSON.stringify(listHead, undefined, 2) }`);
 
     const { data } = await octokit.repos.listTags({
