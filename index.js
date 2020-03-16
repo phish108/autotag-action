@@ -44,6 +44,9 @@ async function action() {
         if (okBranch) {
             console.log("branch confirmed, continue");
         }
+        else {
+            throw new Error("unknown branch provided")
+        }
     }
     // defaults
     const releaseBranch = "master";
