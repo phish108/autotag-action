@@ -2313,10 +2313,10 @@ async function loadBranch(octokit, branch) {
 
 async function action() {
     // Inputs
+    const token = core.getInput('github-token');
     const octokit = new github.GitHub(token);
     
     const dryRun = core.getInput('dry-run').toLowerCase();
-    const token = core.getInput('github-token');
     const level = core.getInput('bump');
     const forceBranch = core.getInput('branch');
 
