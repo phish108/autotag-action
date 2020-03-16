@@ -2306,7 +2306,7 @@ async function loadBranch(octokit, branch) {
         ref: `heads/${branch}`
     });
     
-    console.log("result is " + JSON.stringify(result, undefined, 2));
+    // console.log("result is " + JSON.stringify(result, undefined, 2));
 
     return result.data.shift();
 }
