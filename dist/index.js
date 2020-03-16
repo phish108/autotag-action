@@ -2292,8 +2292,7 @@ async function getLatestTag(octokit, repository) {
         repo:  repository.name
     });
 
-    console.log( `all tags are: ${ JSON.stringify(data, undefined, 2)}` );
-
+    // ensure the highest version number is the last element
     data.sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
 
     return data.pop();
@@ -2306,8 +2305,6 @@ async function loadBranch(octokit, branch) {
         ref: `heads/${branch}`
     });
     
-    // console.log("result is " + JSON.stringify(result, undefined, 2));
-
     return result.data.shift();
 }
 
@@ -2319,9 +2316,12 @@ async function action() {
     const dryRun = core.getInput('dry-run').toLowerCase();
     const level = core.getInput('bump');
     const forceBranch = core.getInput('branch');
+    const releaseBranch = core.getInput('release-branch');
+    
+    const withV = core.getInput('with-v').toLowerCase() === "false" ? "" : "v";
 
     if (forceBranch) {
-        console.log(`forceBranch defined as ${ forceBranch }`);
+        console.log(`verify that ${ forceBranch }-branch exists`);
         // verify that the brnach exists.
         const okBranch = await loadBranch( octokit, forceBranch);
 
@@ -2332,8 +2332,6 @@ async function action() {
             throw new Error("unknown branch provided");
         }
     }
-    // defaults
-    const releaseBranch = "master";
 
     const actionSha = github.context.sha;
 
@@ -2341,7 +2339,6 @@ async function action() {
     const curBranch = forceBranch || github.context.ref.split("/").pop() ;
 
     console.log(curBranch + " is used" );
-
 
     // if force branch
     console.log("fetch matching heads");
@@ -2360,7 +2357,7 @@ async function action() {
     core.setOutput("tag", latestTag.name);
 
     if (latestTag.commit.sha === github.context.sha) {
-        console.log("nothing to commit");
+        console.log("no new commits, avoid tagging");
         core.setOutput("new-tag", latestTag.name);
         return;
     }
@@ -2381,15 +2378,10 @@ async function action() {
 
     core.setOutput("new-tag", nextVersion);
 
-    const payload = JSON.stringify(github.context, undefined, 2)
-    // console.log(`The event payload: ${payload}`);
-
     if (dryRun === "false") {
         console.log(`execute version bump to ${nextVersion}`);
-        // TODO perform release on the current sha
-        const ref = `refs/tags/${nextVersion}`;
-
-        console.log(`ref is ${ ref }` );
+    
+        const ref = `refs/tags/${withV}${nextVersion}`;
 
         const result = await octokit.git.createRef({
             owner: github.context.payload.repository.owner.name,
