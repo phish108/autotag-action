@@ -22,19 +22,19 @@ async function loadBranch(octokit, branch) {
         ref: `heads/${branch}`
     });
     
-    console.log(JSON.stringify(result, undefined, 2));
+    console.log("result is " + JSON.stringify(result, undefined, 2));
 
     return result.data.shift();
 }
 
 async function action() {
     // Inputs
+    const octokit = new github.GitHub(token);
+    
     const dryRun = core.getInput('dry-run').toLowerCase();
     const token = core.getInput('github-token');
     const level = core.getInput('bump');
     const forceBranch = core.getInput('branch');
-
-    const octokit = new github.GitHub(token);
 
     if (forceBranch) {
         console.log(`forceBranch defined as ${ forceBranch }`);
