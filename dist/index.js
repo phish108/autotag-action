@@ -2286,6 +2286,15 @@ const core   = __webpack_require__(470);
 const github = __webpack_require__(469);
 const semver = __webpack_require__(876);
 
+async function getLatestTag(repository) {
+    const { data } = await octokit.repos.listTags({
+        owner: repository.owner.name,
+        repo:  repository.name
+    });
+
+    return data.shift();
+}
+
 async function action() {
     // Inputs
     const dryRun = core.getInput('dry-run').toLowerCase();
@@ -2302,22 +2311,23 @@ async function action() {
     const octokit = new github.GitHub(token);
 
     // if force branch
-    console.log("fetch matchin heads");
-    
-    const listHead = await octokit.git.listMatchingRefs({
+    console.log("fetch matching heads");
+
+    let { data }  = await octokit.git.listMatchingRefs({
         owner: github.context.payload.repository.owner.name,
         repo: github.context.payload.repository.name,
         ref: `heads/${curBranch}`
     });
+
+    const curHeadSHA = data[0].object.sha;
     
-    console.log(`maching refs: ${ JSON.stringify(listHead, undefined, 2) }`);
+    console.log(`maching refs: ${ JSON.stringify(curHeadSHA, undefined, 2) }`);
 
-    const { data } = await octokit.repos.listTags({
-        owner: github.context.payload.repository.owner.name,
-        repo: github.context.payload.repository.name
-    });
+    if (actionSha === curHeadSHA) {
+        console.log("we tag the triggering commit");
+    }
 
-    const latestTag = data.shift();
+    const latestTag = await getLatestTag(github.context.payload.repository);
     core.setOutput("tag", latestTag.name);
 
     if (latestTag.commit.sha === github.context.sha) {
@@ -2352,7 +2362,7 @@ async function action() {
         const result = await octokit.git.createRef({
             owner: github.context.payload.repository.owner.name,
             repo: github.context.payload.repository.name,
-            ref: `tags/${nextVersion}`,
+            ref: `refs/tags/${nextVersion}`,
             sha: actionSha
         });
 
