@@ -2305,7 +2305,7 @@ async function loadBranch(octokit, branch) {
         repo: github.context.payload.repository.name,
         ref: `heads/${branch}`
     });
-
+    
     return data.shift();
 }
 
@@ -2316,6 +2316,7 @@ async function action() {
     const level = core.getInput('bump');
     const forceBranch = core.getInput('branch');
 
+    const octokit = new github.GitHub(token);
 
     if (forceBranch) {
         console.log(`forceBranch defined as ${ forceBranch }`);
@@ -2336,7 +2337,6 @@ async function action() {
 
     console.log(curBranch + " is used" );
 
-    const octokit = new github.GitHub(token);
 
     // if force branch
     console.log("fetch matching heads");
