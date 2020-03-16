@@ -2294,7 +2294,7 @@ async function getLatestTag(octokit, repository) {
 
     console.log( `all tags are: ${ JSON.stringify(data, undefined, 2)}` );
 
-    data.sort((a, b) => semver.compare(semver.clean(a), semver.clean(b)));
+    data.sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
 
     return data.pop();
 }
