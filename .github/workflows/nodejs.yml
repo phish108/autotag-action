@@ -11,7 +11,6 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     strategy:
@@ -30,7 +29,6 @@ jobs:
       env:
         CI: true
     - run: npm run package
-    - run: git add dist/index.js
-    - run: git commit -m "updated dist file $GITSHA"
+    - run: git commit -m "updated dist file $GITSHA" -a 
       env:
-        GITSHA: {{ github.sha }}
+        GITSHA: ${{ github.sha }}
