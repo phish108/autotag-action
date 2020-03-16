@@ -2286,7 +2286,7 @@ const core   = __webpack_require__(470);
 const github = __webpack_require__(469);
 const semver = __webpack_require__(876);
 
-async function getLatestTag(repository) {
+async function getLatestTag(octokit, repository) {
     const { data } = await octokit.repos.listTags({
         owner: repository.owner.name,
         repo:  repository.name
@@ -2327,7 +2327,7 @@ async function action() {
         console.log("we tag the triggering commit");
     }
 
-    const latestTag = await getLatestTag(github.context.payload.repository);
+    const latestTag = await getLatestTag(octokit, github.context.payload.repository);
     core.setOutput("tag", latestTag.name);
 
     if (latestTag.commit.sha === github.context.sha) {
