@@ -18,7 +18,7 @@ async function action() {
     const octokit = new github.GitHub(token);
 
     // if force branch
-    const list = octokit.listMatchingRefs({
+    const list = await octokit.git.listMatchingRefs({
         owner: github.context.payload.repository.owner.name,
         repo: github.context.payload.repository.name,
         ref: `heads/${curBranch}`
@@ -63,7 +63,7 @@ async function action() {
         console.log(`execute version bump to ${nextVersion}`);
         // TODO perform release on the current sha
 
-        const result = await octokit.createRef({
+        const result = await octokit.git.createRef({
             owner: github.context.payload.repository.owner.name,
             repo: github.context.payload.repository.name,
             ref: `tags/${nextVersion}`,
