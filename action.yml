@@ -12,6 +12,10 @@ inputs:
     description: "which part of the semver needs to be updated?"
     required: true
     default: "minor"
+  branch: 
+    description: "force to tag a specific branch"
+    required: false
+    default: ""
 outputs:
   new-tag: # id of output
     description: 'new tag'

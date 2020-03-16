@@ -16,6 +16,7 @@ async function action() {
     const dryRun = core.getInput('dry-run').toLowerCase();
     const token = core.getInput('github-token');
     const level = core.getInput('bump');
+    const forceBranch = core.getInput('branch');
 
     // defaults
     const releaseBranch = "master";
@@ -23,7 +24,10 @@ async function action() {
     const actionSha = github.context.sha;
 
     // release branchs other than master
-    const curBranch = github.context.ref.split("/").pop() ;
+    const curBranch = forceBranch || github.context.ref.split("/").pop() ;
+
+    console.log(curBranch + " is used" );
+    
     const octokit = new github.GitHub(token);
 
     // if force branch
