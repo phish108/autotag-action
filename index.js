@@ -18,17 +18,23 @@ async function action() {
     const octokit = new github.GitHub(token);
 
     // if force branch
-    console.log("fetch matchin heads");
-    
-    const listHead = await octokit.git.listMatchingRefs({
+    console.log("fetch matching heads");
+
+    let { data }  = await octokit.git.listMatchingRefs({
         owner: github.context.payload.repository.owner.name,
         repo: github.context.payload.repository.name,
         ref: `heads/${curBranch}`
     });
-    
-    console.log(`maching refs: ${ JSON.stringify(listHead, undefined, 2) }`);
 
-    const { data } = await octokit.repos.listTags({
+    const curHeadSHA = data[0].object.sha;
+    
+    console.log(`maching refs: ${ JSON.stringify(curHeadSHA, undefined, 2) }`);
+
+    if (actionSha === curHeadSHA) {
+        console.log("we tag the triggering commit");
+    }
+
+    { data } = await octokit.repos.listTags({
         owner: github.context.payload.repository.owner.name,
         repo: github.context.payload.repository.name
     });
@@ -68,7 +74,7 @@ async function action() {
         const result = await octokit.git.createRef({
             owner: github.context.payload.repository.owner.name,
             repo: github.context.payload.repository.name,
-            ref: `tags/${nextVersion}`,
+            ref: `refs/tags/${nextVersion}`,
             sha: actionSha
         });
 
