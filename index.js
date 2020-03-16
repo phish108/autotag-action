@@ -2,6 +2,15 @@ const core   = require('@actions/core');
 const github = require('@actions/github');
 const semver = require('semver');
 
+async function getLatestTag(repository) {
+    const { data } = await octokit.repos.listTags({
+        owner: repository.owner.name,
+        repo:  repository.name
+    });
+
+    return data.shift();
+}
+
 async function action() {
     // Inputs
     const dryRun = core.getInput('dry-run').toLowerCase();
@@ -34,12 +43,7 @@ async function action() {
         console.log("we tag the triggering commit");
     }
 
-    { data } = await octokit.repos.listTags({
-        owner: github.context.payload.repository.owner.name,
-        repo: github.context.payload.repository.name
-    });
-
-    const latestTag = data.shift();
+    const latestTag = await getLatestTag(github.context.payload.repository);
     core.setOutput("tag", latestTag.name);
 
     if (latestTag.commit.sha === github.context.sha) {
