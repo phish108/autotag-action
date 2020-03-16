@@ -12,7 +12,7 @@ async function getLatestTag(octokit, repository) {
 }
 
 async function loadBranch(octokit, branch) {
-    const { data } = await octokit.repos.listTags({
+    const { data } = await octokit.git.listMatchingRefs({
         owner: github.context.payload.repository.owner.name,
         repo: github.context.payload.repository.name,
         ref: `heads/${branch}`
