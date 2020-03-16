@@ -11,6 +11,16 @@ async function getLatestTag(octokit, repository) {
     return data.shift();
 }
 
+async function loadBranch(octokit, branch) {
+    const { data } = await octokit.repos.listTags({
+        owner: github.context.payload.repository.owner.name,
+        repo: github.context.payload.repository.name,
+        ref: `heads/${branch}`
+    });
+
+    return data.shift();
+}
+
 async function action() {
     // Inputs
     const dryRun = core.getInput('dry-run').toLowerCase();
@@ -18,6 +28,16 @@ async function action() {
     const level = core.getInput('bump');
     const forceBranch = core.getInput('branch');
 
+
+    if (forceBranch) {
+        console.log(`forceBranch defined as ${ forceBranch }`);
+        // verify that the brnach exists.
+        const okBranch = await loadBranch( octokit, forceBranch);
+
+        if (okBranch) {
+            console.log("branch confirmed, continue");
+        }
+    }
     // defaults
     const releaseBranch = "master";
 
@@ -27,19 +47,15 @@ async function action() {
     const curBranch = forceBranch || github.context.ref.split("/").pop() ;
 
     console.log(curBranch + " is used" );
-    
+
     const octokit = new github.GitHub(token);
 
     // if force branch
     console.log("fetch matching heads");
 
-    let { data }  = await octokit.git.listMatchingRefs({
-        owner: github.context.payload.repository.owner.name,
-        repo: github.context.payload.repository.name,
-        ref: `heads/${curBranch}`
-    });
+    const branchInfo  = await loadBranch(octokit, curBranch);
 
-    const curHeadSHA = data[0].object.sha;
+    const curHeadSHA = branchInfo.object.sha;
     
     console.log(`maching refs: ${ JSON.stringify(curHeadSHA, undefined, 2) }`);
 
