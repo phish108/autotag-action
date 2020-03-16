@@ -45,7 +45,7 @@ async function action() {
             console.log("branch confirmed, continue");
         }
         else {
-            throw new Error("unknown branch provided")
+            throw new Error("unknown branch provided");
         }
     }
     // defaults
