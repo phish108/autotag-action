@@ -33,7 +33,8 @@ async function action() {
     const level = core.getInput('bump');
     const forceBranch = core.getInput('branch');
     const releaseBranch = core.getInput('release-branch');
-    const withV = core.getInput('with-v').toLowerCase() === "false" ? "", "v";
+    
+    const withV = core.getInput('with-v').toLowerCase() === "false" ? "" : "v";
 
     if (forceBranch) {
         console.log(`verify that ${ forceBranch }-branch exists`);
