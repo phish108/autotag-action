@@ -11,6 +11,7 @@ on:
 
 jobs:
   build:
+    if: github.actor == 'phish108' || startsWith(github.actor, 'dependabot')
     runs-on: ubuntu-latest
 
     strategy:
@@ -18,6 +19,14 @@ jobs:
         node-version: [12.x]
 
     steps:
+    - id: contributor 
+      run: echo ::set-output name=release::minor
+      if: github.actor == 'phish108'
+
+    - id: bot
+      run: echo ::set-output name=release::patch
+      if: startsWith(github.actor, 'dependabot')
+
     - uses: actions/checkout@v2
     - run: |
         git config --local user.email "action@github.com"
@@ -27,11 +36,27 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
     - run: npm ci
-    - run: npm run package
-    - run: git commit -m "updated dist file for $GITSHA" -a 
+    
+    - id: tagger
+      uses: phish108/autotag-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        bump: ${{ steps.contributor.outputs.release || steps.bot.outputs.release }}
+        dry-run: 'TRUE'
+        
+    - run: | 
+        npm run package
+        npm --no-git-tag-version --allow-same-version version ${{ steps.tagger.outputs.new-tag }} 
+        git commit -m "updated dist file for $GITSHA" -a 
       env:
         GITSHA: ${{ github.sha }}
+
     - name: Push changes
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
+    
+    - uses: phish108/autotag-action@master
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        bump: ${{ steps.contributor.outputs.release || steps.bot.outputs.release }}
