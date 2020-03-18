@@ -90,7 +90,7 @@ async function action() {
     const branchName = branchInfo.ref.split("/").pop();
     
     for (const branch of releaseBranch.split(",")) {
-        const testBranchName = new RegEx(branch);
+        const testBranchName = new RegExp(branch);
         if (testBranchName.test(branchName)) {
             console.log(`${ branchName } is a release branch`);
             nextVersion = semver.inc(version, level);
