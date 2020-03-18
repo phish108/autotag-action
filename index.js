@@ -67,11 +67,11 @@ async function action() {
 
     const latestTag = await getLatestTag(octokit, github.context.payload.repository);
 
-    console.log(`the previous tag of the repository ${latestTag}`);
+    console.log(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
 
-    core.setOutput("tag", latestTag.name);
+    core.setOutput("tag", latestTag ? latestTag.name : "0.0.0");
 
-    if (latestTag.commit.sha === sha) {
+    if (latestTag && latestTag.commit.sha === sha) {
         throw new Error("no new commits, avoid tagging");
     }
 
@@ -81,7 +81,7 @@ async function action() {
     let nextVersion = semver.inc(
         version, 
         "pre" + level, 
-        github.context.sha.slice(0, 6)
+        sha.slice(0, 6)
     );
     
     // check if the current branch is actually a release branch
