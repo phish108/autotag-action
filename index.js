@@ -21,7 +21,7 @@ async function loadBranch(octokit, branch) {
         ref: `heads/${branch}`
     });
 
-    console.log(`branch data: ${ JSON.stringify(result, undefined, 2) } `);
+    // console.log(`branch data: ${ JSON.stringify(result, undefined, 2) } `);
 
     return result.data.shift();
 }
@@ -69,7 +69,9 @@ async function action() {
 
     console.log(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
 
-    core.setOutput("tag", latestTag ? latestTag.name : "0.0.0");
+    const versionTag = latestTag ? latestTag.name : "0.0.0";
+
+    core.setOutput("tag", versionTag);
 
     if (latestTag && latestTag.commit.sha === sha) {
         throw new Error("no new commits, avoid tagging");
@@ -77,7 +79,7 @@ async function action() {
 
     console.log(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
 
-    const version   = semver.clean(latestTag.name);
+    const version   = semver.clean(versionTag);
     let nextVersion = semver.inc(
         version, 
         "pre" + level, 
