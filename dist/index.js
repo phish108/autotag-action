@@ -2333,7 +2333,7 @@ async function action() {
         }
     }
 
-    const actionSha = github.context.sha;
+    const sha = github.context.sha;
 
     // release branchs other than master
     const curBranch = forceBranch || github.context.ref.split("/").pop() ;
@@ -2344,16 +2344,12 @@ async function action() {
     console.log("fetch matching heads");
 
     const branchInfo  = await loadBranch(octokit, curBranch);
-
     const curHeadSHA = branchInfo.object.sha;
     
     console.log(`maching refs: ${ JSON.stringify(curHeadSHA, undefined, 2) }`);
 
-    if (actionSha === curHeadSHA) {
-        console.log("we tag the triggering commit");
-    }
-
     const latestTag = await getLatestTag(octokit, github.context.payload.repository);
+
     core.setOutput("tag", latestTag.name);
 
     if (latestTag.commit.sha === github.context.sha) {
@@ -2365,14 +2361,17 @@ async function action() {
 
     console.log(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
 
-    const version = semver.clean(latestTag.name);
+    const version   = semver.clean(latestTag.name);
     let nextVersion = semver.inc(version, level);
 
     console.log(`current branch is ${curBranch}`);
 
     if (curBranch !== releaseBranch) {
         console.log("not a release branch, create a prerelease")
-        nextVersion = semver.inc(version, "pre"+level, github.context.sha.slice(0, 6));
+        nextVersion = semver.inc(version, 
+                                 "pre"+level, 
+                                 github.context.sha.slice(0, 6)
+        );
     }
 
     console.log( `bump tag ${ nextVersion }` );
@@ -2388,7 +2387,7 @@ async function action() {
             owner: github.context.payload.repository.owner.name,
             repo: github.context.payload.repository.name,
             ref,
-            sha: actionSha
+            sha
         });
     }
 }
