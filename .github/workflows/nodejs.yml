@@ -27,12 +27,8 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
     - run: npm ci
-    # - run: npm run build --if-present
-    # - run: npm test
-    #   env:
-    #     CI: true
     - run: npm run package
-    - run: git commit -m "updated dist file $GITSHA" -a 
+    - run: git commit -m "updated dist file for $GITSHA" -a 
       env:
         GITSHA: ${{ github.sha }}
     - name: Push changes
