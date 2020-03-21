@@ -74,7 +74,7 @@ jobs:
         node-version: 
         - 12
     steps: 
-    - uses: phish108/autotag-action@1.1.1
+    - uses: phish108/autotag-action@1.1.2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN}}
 ```
@@ -107,7 +107,7 @@ jobs:
     - run: npm test
       env:
         CI: "true"
-    - uses: phish108/autotag-action@1.1.1
+    - uses: phish108/autotag-action@1.1.2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN}}
         with-v: "true"
@@ -201,7 +201,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
   
-      - uses: phish108/autotag-action@1.1.1
+      - uses: phish108/autotag-action@1.1.2
         id: tagger
         env:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -219,7 +219,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: phish108/github-tag-action@1.1.1
+      - uses: phish108/github-tag-action@1.1.2
         env:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           branch: "master"
@@ -227,7 +227,7 @@ jobs:
           with-v: true
 ```
 
-## More advanced usages
+## More advanced usage
 
 The `tag` input allows to use a custom tag for tagging. This is useful when generating or applying tags. 
 
