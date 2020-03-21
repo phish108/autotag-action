@@ -2308,7 +2308,7 @@ async function getLatestTag(octokit, boolAll = true) {
     const filtered = data.filter((b) => semver.prerelease(b.name) === null);
     const result = filtered.pop();
 
-    console.log(`filtered release ${JSON.stringify(result, undefined, 2)}`);
+    // console.log(`filtered release ${JSON.stringify(result, undefined, 2)}`);
 
     return result;
 }
@@ -2352,6 +2352,8 @@ async function checkMessages(octokit, latestTag, issueTags = ["enhancement"]) {
         // console.log(commit.message);
         const message = commit.commit.message;
 
+        console.log(`message is : "${message}"`);
+
         if (wip.test(message)) {
             console.log("    found wip message, skip");
             continue;
@@ -2372,6 +2374,7 @@ async function checkMessages(octokit, latestTag, issueTags = ["enhancement"]) {
         }
 
         if (releaseBump !== "minor" && patch.test(message)) {
+            console.log("    found patch tag");
             releaseBump = "patch";
             continue;
         }
