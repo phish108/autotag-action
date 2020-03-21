@@ -74,7 +74,7 @@ jobs:
         node-version: 
         - 12
     steps: 
-    - uses: phish108/autotag-action@v1
+    - uses: phish108/autotag-action@1.1.1
       with:
         github-token: ${{ secrets.GITHUB_TOKEN}}
 ```
@@ -100,14 +100,14 @@ jobs:
     - run: echo 00010
     - uses: actions/checkout@v2
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@1.0.2
+      uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
     - run: npm ci
     - run: npm test
       env:
         CI: "true"
-    - uses: phish108/autotag-action@1.0.2
+    - uses: phish108/autotag-action@1.1.1
       with:
         github-token: ${{ secrets.GITHUB_TOKEN}}
         with-v: "true"
@@ -201,7 +201,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
   
-      - uses: phish108/autotag-action@1.0.2
+      - uses: phish108/autotag-action@1.1.1
         id: tagger
         env:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -219,7 +219,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: phish108/github-tag-action@1.0.2
+      - uses: phish108/github-tag-action@1.1.1
         env:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           branch: "master"
