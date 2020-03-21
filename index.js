@@ -157,7 +157,7 @@ async function action() {
     const sha = branchInfo.object.sha;
 
     if (customTag) {
-        # TODO check if the tag exists, and if not dryRun, then the previous tag should be removed.
+        // TODO check if the tag exists, and if not dryRun, then the previous tag should be removed.
 
         core.setOutput("new-tag", customTag);
     }
