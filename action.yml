@@ -15,7 +15,7 @@ inputs:
   bump: 
     description: "which part of the semver needs to be updated?"
     required: true
-    default: "minor"
+    default: "patch"
   branch: 
     description: "force to tag a specific branch"
     required: false

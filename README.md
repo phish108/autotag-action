@@ -1,7 +1,8 @@
-# autotag-action
+# Autotag
 
-A lightning fast autotagger for `semver`-tagging. This action scans the commit messages for fixed issues and semver changes. If a commit message fixes an issue, 
-`autotag-action` will check wether the issue was labled as an *enhancement* that triggers a `minor` release, or a bug fix that will be treated as a `patch`. 
+A lightning fast autotagger for `semver`-tagging. It helps you to stay on top of your release management and release your code quickly and often through GitHub's tag-based release functions just by pushing to your repository.
+
+This action scans your commit messages for fixed issues and semver changes. Use `#major`, `#minor`, or `#patch` tags in your commit messages and autotagger will increase your version tags accordingly. You can suppress imediate autotagging with `#wip` tags in your commit messages. If a commit message fixes an issue (using `fixes #issuenbr` style messages), then `autotag-action` will check wether the corresponding issue was labled as `enhancement` that triggers a `minor` release, or a bug fix that will be treated as a `patch`. `autotag-action` also supports prereleases for non-release branches and custom tags.
 
 This action has been inspired by [anothrNick/github-tag-action](/anothrNick/github-tag-action), but is written completely in javascript and runs directly within the runner.
 
@@ -21,7 +22,7 @@ This input is useful if the release version has to be known for other steps befo
 
 ### `bump`
 
-**Optional** semver bumping. Valid values are `major`, `minor` or `patch` (Default: `minor`)
+**Optional** semver bumping. Valid values are `major`, `minor` or `patch` (Default: `patch`)
 
 ### `with-v`
 
@@ -99,14 +100,14 @@ jobs:
     - run: echo 00010
     - uses: actions/checkout@v2
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@1.0.2
       with:
         node-version: ${{ matrix.node-version }}
     - run: npm ci
     - run: npm test
       env:
         CI: "true"
-    - uses: phish108/autotag-action@v1
+    - uses: phish108/autotag-action@1.0.2
       with:
         github-token: ${{ secrets.GITHUB_TOKEN}}
         with-v: "true"
@@ -200,7 +201,7 @@ jobs:
           git config --local user.email "action@github.com"
           git config --local user.name "GitHub Action"
   
-      - uses: phish108/autotag-action@v1
+      - uses: phish108/autotag-action@1.0.2
         id: tagger
         env:
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -218,7 +219,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: phish108/github-tag-action@v1
+      - uses: phish108/github-tag-action@1.0.2
         env:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           branch: "master"
