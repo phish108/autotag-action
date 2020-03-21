@@ -2325,8 +2325,10 @@ async function loadBranch(octokit, branch) {
     return result.data.shift();
 }
 
-async function checkMessages(octokit, latestTag, issueTags) {
-    const sha = latestTag.commit.sha;
+async function checkMessages(octokit, sha, issueTags) {
+    // const sha = latestTag.commit.sha;
+
+    console.log(`load commits since ${sha}`);
 
     let releaseBump = "none";
 
@@ -2508,11 +2510,14 @@ async function action() {
         }
 
         // check if commits and issues point to a diffent release
-        const msgLevel = await checkMessages(octokit, latestMainTag, issLabs);
-        const msgLevelB = await checkMessages(octokit, latestTag, issLabs);
+        const msgLevel = await checkMessages(octokit, latestMainTag.commit.sha, issLabs);
+        console.log("================> commits in branch");
+        const msgLevelB = await checkMessages(octokit, latestTag.commit.sha, issLabs);
+        const msgLevelC = await checkMessages(octokit, branchInfo.object.sha, issLabs);
 
         console.log(`commit messages suggest ${msgLevel} upgrade`);
         console.log(`commit messages since minor suggest ${msgLevelB} upgrade`);
+        console.log(`commit messages for branch suggest ${msgLevelC} upgrade`);
         
         for (const branch of releaseBranch.split(",").map(b => b.trim())) {
             const testBranchName = new RegExp(branch);
