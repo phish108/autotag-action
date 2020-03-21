@@ -2289,6 +2289,23 @@ const semver = __webpack_require__(876);
 const owner = github.context.payload.repository.owner.name;
 const repo = github.context.payload.repository.name;
 
+async function checkTag(octokit, tagName) {
+    const { data } = await octokit.repos.listTags({
+        owner,
+        repo
+    });
+
+    if (data) {
+        const result = data.filter(tag => tag.name === tagName);
+
+        if (result.length) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 async function getLatestTag(octokit, boolAll = true) {
     const { data } = await octokit.repos.listTags({
         owner,
@@ -2476,8 +2493,10 @@ async function action() {
 
     console.log(`active branch name is ${ branchName }`);
 
-    if (customTag) {
-        // TODO check if the tag exists, and if not dryRun, then the previous tag should be removed.
+    if (customTag){
+        if (checkTag(octokit, customTag)) {
+            throw new Error(`tag already exists ${customTag}`);
+        }
 
         core.setOutput("new-tag", customTag);
     }
