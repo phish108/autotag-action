@@ -2296,19 +2296,22 @@ async function getLatestTag(octokit, boolAll = true) {
     });
 
     // ensure the highest version number is the last element
-    data.sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
+    // strip all non version tags
+    const allVTags = data
+        .filter(tag => semver.clean(tag) !== null);
+    
+    allVTags
+        .sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
 
     if (boolAll) {
-        return data.pop();
+        return allVTags.pop();
     }
 
     // filter prereleases
-    console.log("filter only main releases");
+    // console.log("filter only main releases");
     
-    const filtered = data.filter((b) => semver.prerelease(b.name) === null);
+    const filtered = allVTags.filter((b) => semver.prerelease(b.name) === null);
     const result = filtered.pop();
-
-    // console.log(`filtered release ${JSON.stringify(result, undefined, 2)}`);
 
     return result;
 }
@@ -2320,15 +2323,14 @@ async function loadBranch(octokit, branch) {
         ref: `heads/${branch}`
     });
 
-    console.log(`branch data: ${ JSON.stringify(result, undefined, 2) } `);
-
+    // console.log(`branch data: ${ JSON.stringify(result.data, undefined, 2) } `);
     return result.data.shift();
 }
 
 async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
     const sha = branchHeadSha;
 
-    console.log(`load commits since ${sha}`);
+    // console.log(`load commits since ${sha}`);
 
     let releaseBump = "none";
 
@@ -2366,10 +2368,8 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
         }
 
         if (major.test(message)) {
-            console.log("found major tag, stop");
-
-            releaseBump = "major";
-            break;
+            // console.log("found major tag, stop");
+            return "major";
         }
         
         if (minor.test(message)) {
@@ -2386,8 +2386,7 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
         }
 
         if (releaseBump !== "minor" && fix.test(message)) {
-            console.log("found a fix message, check issue for enhancements");
-            releaseBump = "patch";
+            // console.log("found a fix message, check issue for enhancements");
 
             const id = matcher.exec(message);
 
@@ -2403,6 +2402,8 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
                 });
 
                 if (data) {
+                    releaseBump = "patch";
+
                     for (const label of data.labels) {
 
                         if (issueTags.indexOf(label.name) >= 0) {
@@ -2412,12 +2413,9 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
                         }
                     }
                 }
-                else {
-                    console.log("invalid issue");
-                }
             }
 
-            continue;
+            // continue;
         }
         // console.log("no info message");
     }
