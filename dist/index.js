@@ -2306,7 +2306,7 @@ async function getLatestTag(octokit, boolAll = true) {
     console.log("filter only main releases");
     
     const filtered = data.filter((b) => semver.prerelease(b.name) === null);
-    const result = result.pop();
+    const result = filtered.pop();
 
     console.log(`filtered release ${JSON.stringify(result, undefined, 2)}`);
 
@@ -2501,7 +2501,7 @@ async function action() {
         }
 
         // check if commits and issues point to a diffent release
-        const msgLevel = await checkMessages(octokit, latestTag, issLabs);
+        const msgLevel = await checkMessages(octokit, latestMainTag, issLabs);
 
         console.log(`commit messages suggest ${msgLevel} upgrade`)
         
