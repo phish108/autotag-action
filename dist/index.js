@@ -2286,10 +2286,13 @@ const core   = __webpack_require__(470);
 const github = __webpack_require__(469);
 const semver = __webpack_require__(876);
 
-async function getLatestTag(octokit, repository) {
+const owner = github.context.payload.repository.owner.name;
+const repo = github.context.payload.repository.name;
+
+async function getLatestTag(octokit) {
     const { data } = await octokit.repos.listTags({
-        owner: repository.owner.name,
-        repo:  repository.name
+        owner,
+        repo
     });
 
     // ensure the highest version number is the last element
@@ -2300,14 +2303,102 @@ async function getLatestTag(octokit, repository) {
 
 async function loadBranch(octokit, branch) {
     const result = await octokit.git.listMatchingRefs({
-        owner: github.context.payload.repository.owner.name,
-        repo: github.context.payload.repository.name,
+        owner,
+        repo,
         ref: `heads/${branch}`
     });
 
     // console.log(`branch data: ${ JSON.stringify(result, undefined, 2) } `);
 
     return result.data.shift();
+}
+
+async function checkMessages(octokit, latestTag, issueTags = ["enhancement"]) {
+    const sha = latestTag.commit.sha;
+
+    let releaseBump = "none";
+
+    const result = await octokit.repos.listCommits({
+        owner,
+        repo,
+        sha
+    });
+
+    if (!(result && result.data)) {
+        return releaseBump;
+    }
+
+    const wip   = new RegExp("#wip");
+    const major = new RegExp("\b#?major\b");
+    const minor = new RegExp("\b#?minor\b");
+    const patch = new RegExp("\b#?patch\b");
+
+    const fix   = new RegExp("fix(?:es)? #\d");
+    const matcher = new RegExp(/fix(?:es)? #(\d+)\b/);
+
+    for (const commit of result.data) {
+        // console.log(commit.message);
+        const message = commit.commit.message;
+
+        if (wip.test(message)) {
+            console.log("    found wip message, skip");
+            continue;
+        }
+
+        if (major.test(message)) {
+            console.log("    found major tag, stop");
+
+            releaseBump = "major";
+            break;
+        }
+        
+        if (minor.test(message)) {
+            console.log("    found minor tag");
+
+            releaseBump = "minor";
+            continue;
+        }
+
+        if (releaseBump !== "minor" && patch.test(message)) {
+            releaseBump = "patch";
+            continue;
+        }
+
+        if (releaseBump !== "minor" && fix.test(message)) {
+            console.log("    found a fix message, check issue for enhancements");
+            releaseBump = "patch";
+
+            const id = matcher.exec(message);
+
+            if (id && Number(id[1]) > 0) {
+                const issue_number = Number(id[1]);
+
+                console.log(`    check issue ${issue_number} for minor labels`);
+
+                const { data } = await octokit.issues.get({
+                    owner,
+                    repo,
+                    issue_number    
+                });
+
+                if (data) {
+                    for (const label of data.labels) {
+
+                        if (issueTags.indexOf(label.name) >= 0) {
+                            console.log("    found enhancement issue");
+                            releaseBump = "minor";
+                            break;
+                        }
+                    }
+                }
+                else {
+                    console.log("    invalid issue");
+                }
+            }
+        }
+    }
+
+    return releaseBump;
 }
 
 async function action() {
@@ -2322,8 +2413,10 @@ async function action() {
     const forceBranch   = core.getInput('branch');
     const releaseBranch = core.getInput('release-branch');
     const withV         = core.getInput('with-v').toLowerCase() === "false" ? "" : "v";
+    const customTag     = core.getInput('tag');
+    const issueLabels   = core.getInput('issue-labels');
 
-    let branchInfo;
+    let branchInfo, nextVersion;
 
     if (forceBranch) {
         console.log(`check forced branch ${forceBranch}`);
@@ -2344,60 +2437,92 @@ async function action() {
         branchInfo  = await loadBranch(octokit, activeBranch);
     }
     
-    // the tag for tagging
+    // the sha for tagging
     const sha = branchInfo.object.sha;
 
-    console.log(`maching refs: ${ sha }`);
+    if (customTag) {
+        // TODO check if the tag exists, and if not dryRun, then the previous tag should be removed.
 
-    const latestTag = await getLatestTag(octokit, github.context.payload.repository);
-
-    console.log(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
-
-    const versionTag = latestTag ? latestTag.name : "0.0.0";
-
-    core.setOutput("tag", versionTag);
-
-    if (latestTag && latestTag.commit.sha === sha) {
-        throw new Error("no new commits, avoid tagging");
+        core.setOutput("new-tag", customTag);
     }
+    else {
 
-    console.log(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
+        console.log(`maching refs: ${ sha }`);
 
-    const version   = semver.clean(versionTag);
-    let nextVersion = semver.inc(
-        version, 
-        "pre" + level, 
-        sha.slice(0, 6)
-    );
-    
-    // check if the current branch is actually a release branch
-    const branchName = branchInfo.ref.split("/").pop();
-    
-    for (const branch of releaseBranch.split(",")) {
-        const testBranchName = new RegExp(branch);
-        if (testBranchName.test(branchName)) {
-            console.log(`${ branchName } is a release branch`);
-            nextVersion = semver.inc(version, level);
-            break;
+        const latestTag = await getLatestTag(octokit);
+
+        console.log(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
+
+        const versionTag = latestTag ? latestTag.name : "0.0.0";
+
+        core.setOutput("tag", versionTag);
+
+        if (latestTag && latestTag.commit.sha === sha) {
+            throw new Error("no new commits, avoid tagging");
         }
+
+        console.log(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
+
+        const version   = semver.clean(versionTag);
+
+        nextVersion = semver.inc(
+            version, 
+            "pre" + level, 
+            sha.slice(0, 6)
+        );
+
+        let issLabs = ["enhancement"];
+
+        if (issueLabels) {
+            const xlabels = issueLabels.split(',').map(lab => lab.trim());
+
+            if (xlabels.length) {
+                issLabs = xlabels;
+            }
+        }
+
+        // check if commits and issues point to a diffent release
+        const msgLevel = await checkMessages(octokit, latestTag, issLabs);
+
+        // check if the current branch is actually a release branch
+        const branchName = branchInfo.ref.split("/").pop();
+        
+        for (const branch of releaseBranch.split(",").map(b => b.trim())) {
+            const testBranchName = new RegExp(branch);
+
+            if (testBranchName.test(branchName)) {
+                console.log(`${ branchName } is a release branch`);
+
+                if (msgLevel === "none") {
+                    nextVersion = semver.inc(version, level);
+                }
+                else {
+                    console.log(`commit messages force bump level to ${msgLevel}`);
+                    nextVersion = semver.inc(version, msgLevel);
+                }
+                break;
+            }
+        }
+
+        console.log( `bump tag ${ nextVersion }` );
+
+        core.setOutput("new-tag", nextVersion);
     }
-
-    console.log( `bump tag ${ nextVersion }` );
-
-    core.setOutput("new-tag", nextVersion);
 
     if (dryRun === "true") {
         console.log("dry run, don't perform tagging");
         return
     }
 
-    console.log(`really add tag ${ withV }${ nextVersion }`);
+    const newTag = `${ withV }${ nextVersion }`;
 
-    const ref = `refs/tags/${ withV }${ nextVersion }`;
+    console.log(`really add tag ${ customTag ? customTag : newTag }`);
+
+    const ref = `refs/tags/${ customTag ? customTag : newTag }`;
 
     const result = await octokit.git.createRef({
-        owner: github.context.payload.repository.owner.name,
-        repo: github.context.payload.repository.name,
+        owner,
+        repo,
         ref,
         sha
     });
@@ -4656,7 +4781,7 @@ exports.getUserAgent = getUserAgent;
 /***/ 215:
 /***/ (function(module) {
 
-module.exports = {"name":"@octokit/rest","version":"16.43.1","publishConfig":{"access":"public"},"description":"GitHub REST API client for Node.js","keywords":["octokit","github","rest","api-client"],"author":"Gregor Martynus (https://github.com/gr2m)","contributors":[{"name":"Mike de Boer","email":"info@mikedeboer.nl"},{"name":"Fabian Jakobs","email":"fabian@c9.io"},{"name":"Joe Gallo","email":"joe@brassafrax.com"},{"name":"Gregor Martynus","url":"https://github.com/gr2m"}],"repository":"https://github.com/octokit/rest.js","dependencies":{"@octokit/auth-token":"^2.4.0","@octokit/plugin-paginate-rest":"^1.1.1","@octokit/plugin-request-log":"^1.0.0","@octokit/plugin-rest-endpoint-methods":"2.4.0","@octokit/request":"^5.2.0","@octokit/request-error":"^1.0.2","atob-lite":"^2.0.0","before-after-hook":"^2.0.0","btoa-lite":"^1.0.0","deprecation":"^2.0.0","lodash.get":"^4.4.2","lodash.set":"^4.3.2","lodash.uniq":"^4.5.0","octokit-pagination-methods":"^1.1.0","once":"^1.4.0","universal-user-agent":"^4.0.0"},"devDependencies":{"@gimenete/type-writer":"^0.1.3","@octokit/auth":"^1.1.1","@octokit/fixtures-server":"^5.0.6","@octokit/graphql":"^4.2.0","@types/node":"^13.1.0","bundlesize":"^0.18.0","chai":"^4.1.2","compression-webpack-plugin":"^3.1.0","cypress":"^3.0.0","glob":"^7.1.2","http-proxy-agent":"^4.0.0","lodash.camelcase":"^4.3.0","lodash.merge":"^4.6.1","lodash.upperfirst":"^4.3.1","lolex":"^5.1.2","mkdirp":"^1.0.0","mocha":"^7.0.1","mustache":"^4.0.0","nock":"^11.3.3","npm-run-all":"^4.1.2","nyc":"^15.0.0","prettier":"^1.14.2","proxy":"^1.0.0","semantic-release":"^17.0.0","sinon":"^8.0.0","sinon-chai":"^3.0.0","sort-keys":"^4.0.0","string-to-arraybuffer":"^1.0.0","string-to-jsdoc-comment":"^1.0.0","typescript":"^3.3.1","webpack":"^4.0.0","webpack-bundle-analyzer":"^3.0.0","webpack-cli":"^3.0.0"},"types":"index.d.ts","scripts":{"coverage":"nyc report --reporter=html && open coverage/index.html","lint":"prettier --check '{lib,plugins,scripts,test}/**/*.{js,json,ts}' 'docs/*.{js,json}' 'docs/src/**/*' index.js README.md package.json","lint:fix":"prettier --write '{lib,plugins,scripts,test}/**/*.{js,json,ts}' 'docs/*.{js,json}' 'docs/src/**/*' index.js README.md package.json","pretest":"npm run -s lint","test":"nyc mocha test/mocha-node-setup.js \"test/*/**/*-test.js\"","test:browser":"cypress run --browser chrome","build":"npm-run-all build:*","build:ts":"npm run -s update-endpoints:typescript","prebuild:browser":"mkdirp dist/","build:browser":"npm-run-all build:browser:*","build:browser:development":"webpack --mode development --entry . --output-library=Octokit --output=./dist/octokit-rest.js --profile --json > dist/bundle-stats.json","build:browser:production":"webpack --mode production --entry . --plugin=compression-webpack-plugin --output-library=Octokit --output-path=./dist --output-filename=octokit-rest.min.js --devtool source-map","generate-bundle-report":"webpack-bundle-analyzer dist/bundle-stats.json --mode=static --no-open --report dist/bundle-report.html","update-endpoints":"npm-run-all update-endpoints:*","update-endpoints:fetch-json":"node scripts/update-endpoints/fetch-json","update-endpoints:typescript":"node scripts/update-endpoints/typescript","prevalidate:ts":"npm run -s build:ts","validate:ts":"tsc --target es6 --noImplicitAny index.d.ts","postvalidate:ts":"tsc --noEmit --target es6 test/typescript-validate.ts","start-fixtures-server":"octokit-fixtures-server"},"license":"MIT","files":["index.js","index.d.ts","lib","plugins"],"nyc":{"ignore":["test"]},"release":{"publish":["@semantic-release/npm",{"path":"@semantic-release/github","assets":["dist/*","!dist/*.map.gz"]}]},"bundlesize":[{"path":"./dist/octokit-rest.min.js.gz","maxSize":"33 kB"}],"_resolved":"https://registry.npmjs.org/@octokit/rest/-/rest-16.43.1.tgz","_integrity":"sha512-gfFKwRT/wFxq5qlNjnW2dh+qh74XgTQ2B179UX5K1HYCluioWj8Ndbgqw2PVqa1NnVJkGHp2ovMpVn/DImlmkw==","_from":"@octokit/rest@16.43.1"};
+module.exports = {"_from":"@octokit/rest@^16.43.1","_id":"@octokit/rest@16.43.1","_inBundle":false,"_integrity":"sha512-gfFKwRT/wFxq5qlNjnW2dh+qh74XgTQ2B179UX5K1HYCluioWj8Ndbgqw2PVqa1NnVJkGHp2ovMpVn/DImlmkw==","_location":"/@octokit/rest","_phantomChildren":{},"_requested":{"type":"range","registry":true,"raw":"@octokit/rest@^16.43.1","name":"@octokit/rest","escapedName":"@octokit%2frest","scope":"@octokit","rawSpec":"^16.43.1","saveSpec":null,"fetchSpec":"^16.43.1"},"_requiredBy":["/@actions/github"],"_resolved":"https://registry.npmjs.org/@octokit/rest/-/rest-16.43.1.tgz","_shasum":"3b11e7d1b1ac2bbeeb23b08a17df0b20947eda6b","_spec":"@octokit/rest@^16.43.1","_where":"/Users/phish/Documents/code/jstest-action/node_modules/@actions/github","author":{"name":"Gregor Martynus","url":"https://github.com/gr2m"},"bugs":{"url":"https://github.com/octokit/rest.js/issues"},"bundleDependencies":false,"bundlesize":[{"path":"./dist/octokit-rest.min.js.gz","maxSize":"33 kB"}],"contributors":[{"name":"Mike de Boer","email":"info@mikedeboer.nl"},{"name":"Fabian Jakobs","email":"fabian@c9.io"},{"name":"Joe Gallo","email":"joe@brassafrax.com"},{"name":"Gregor Martynus","url":"https://github.com/gr2m"}],"dependencies":{"@octokit/auth-token":"^2.4.0","@octokit/plugin-paginate-rest":"^1.1.1","@octokit/plugin-request-log":"^1.0.0","@octokit/plugin-rest-endpoint-methods":"2.4.0","@octokit/request":"^5.2.0","@octokit/request-error":"^1.0.2","atob-lite":"^2.0.0","before-after-hook":"^2.0.0","btoa-lite":"^1.0.0","deprecation":"^2.0.0","lodash.get":"^4.4.2","lodash.set":"^4.3.2","lodash.uniq":"^4.5.0","octokit-pagination-methods":"^1.1.0","once":"^1.4.0","universal-user-agent":"^4.0.0"},"deprecated":false,"description":"GitHub REST API client for Node.js","devDependencies":{"@gimenete/type-writer":"^0.1.3","@octokit/auth":"^1.1.1","@octokit/fixtures-server":"^5.0.6","@octokit/graphql":"^4.2.0","@types/node":"^13.1.0","bundlesize":"^0.18.0","chai":"^4.1.2","compression-webpack-plugin":"^3.1.0","cypress":"^3.0.0","glob":"^7.1.2","http-proxy-agent":"^4.0.0","lodash.camelcase":"^4.3.0","lodash.merge":"^4.6.1","lodash.upperfirst":"^4.3.1","lolex":"^5.1.2","mkdirp":"^1.0.0","mocha":"^7.0.1","mustache":"^4.0.0","nock":"^11.3.3","npm-run-all":"^4.1.2","nyc":"^15.0.0","prettier":"^1.14.2","proxy":"^1.0.0","semantic-release":"^17.0.0","sinon":"^8.0.0","sinon-chai":"^3.0.0","sort-keys":"^4.0.0","string-to-arraybuffer":"^1.0.0","string-to-jsdoc-comment":"^1.0.0","typescript":"^3.3.1","webpack":"^4.0.0","webpack-bundle-analyzer":"^3.0.0","webpack-cli":"^3.0.0"},"files":["index.js","index.d.ts","lib","plugins"],"homepage":"https://github.com/octokit/rest.js#readme","keywords":["octokit","github","rest","api-client"],"license":"MIT","name":"@octokit/rest","nyc":{"ignore":["test"]},"publishConfig":{"access":"public"},"release":{"publish":["@semantic-release/npm",{"path":"@semantic-release/github","assets":["dist/*","!dist/*.map.gz"]}]},"repository":{"type":"git","url":"git+https://github.com/octokit/rest.js.git"},"scripts":{"build":"npm-run-all build:*","build:browser":"npm-run-all build:browser:*","build:browser:development":"webpack --mode development --entry . --output-library=Octokit --output=./dist/octokit-rest.js --profile --json > dist/bundle-stats.json","build:browser:production":"webpack --mode production --entry . --plugin=compression-webpack-plugin --output-library=Octokit --output-path=./dist --output-filename=octokit-rest.min.js --devtool source-map","build:ts":"npm run -s update-endpoints:typescript","coverage":"nyc report --reporter=html && open coverage/index.html","generate-bundle-report":"webpack-bundle-analyzer dist/bundle-stats.json --mode=static --no-open --report dist/bundle-report.html","lint":"prettier --check '{lib,plugins,scripts,test}/**/*.{js,json,ts}' 'docs/*.{js,json}' 'docs/src/**/*' index.js README.md package.json","lint:fix":"prettier --write '{lib,plugins,scripts,test}/**/*.{js,json,ts}' 'docs/*.{js,json}' 'docs/src/**/*' index.js README.md package.json","postvalidate:ts":"tsc --noEmit --target es6 test/typescript-validate.ts","prebuild:browser":"mkdirp dist/","pretest":"npm run -s lint","prevalidate:ts":"npm run -s build:ts","start-fixtures-server":"octokit-fixtures-server","test":"nyc mocha test/mocha-node-setup.js \"test/*/**/*-test.js\"","test:browser":"cypress run --browser chrome","update-endpoints":"npm-run-all update-endpoints:*","update-endpoints:fetch-json":"node scripts/update-endpoints/fetch-json","update-endpoints:typescript":"node scripts/update-endpoints/typescript","validate:ts":"tsc --target es6 --noImplicitAny index.d.ts"},"types":"index.d.ts","version":"16.43.1"};
 
 /***/ }),
 
