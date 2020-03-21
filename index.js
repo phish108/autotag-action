@@ -68,8 +68,8 @@ async function checkMessages(octokit, latestTag, issueTags) {
         // console.log(commit.message);
         const message = commit.commit.message;
 
-        console.log(`commit is : "${JSON.stringify(commit.commit, undefined, 2)}"`);
-        // console.log(`message is : "${message}"`);
+        // console.log(`commit is : "${JSON.stringify(commit.commit, undefined, 2)}"`);
+        console.log(`message is : "${message}" on ${commit.commit.committer.date}`);
 
         if (wip.test(message)) {
             console.log("    found wip message, skip");
