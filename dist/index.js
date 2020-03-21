@@ -2340,12 +2340,12 @@ async function checkMessages(octokit, latestTag, issueTags) {
         return releaseBump;
     }
 
-    const wip   = new RegExp("#wip\b");
-    const major = new RegExp("#major\b");
-    const minor = new RegExp("#minor\b");
-    const patch = new RegExp("#patch\b");
+    const wip   = new RegExp("#wip\\b");
+    const major = new RegExp("#major\\b");
+    const minor = new RegExp("#minor\\b");
+    const patch = new RegExp("#patch\\b");
 
-    const fix   = new RegExp("fix(?:es)? #\d");
+    const fix   = new RegExp("fix(?:es)? #\\d+");
     const matcher = new RegExp(/fix(?:es)? #(\d+)\b/);
 
     for (const commit of result.data) {
