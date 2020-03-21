@@ -2353,7 +2353,7 @@ async function checkMessages(octokit, latestTag, issueTags) {
         const message = commit.commit.message;
 
         // console.log(`commit is : "${JSON.stringify(commit.commit, undefined, 2)}"`);
-        console.log(`message is : "${message}" on ${commit.commit.committer.date}`);
+        console.log(`message is : "${message}" on ${commit.commit.committer.date} (${commit.sha})`);
 
         if (wip.test(message)) {
             console.log("    found wip message, skip");
