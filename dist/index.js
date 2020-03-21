@@ -2510,9 +2510,11 @@ async function action() {
         }
 
         // check if commits and issues point to a diffent release
+        console.log("================> commits since main");
         const msgLevel = await checkMessages(octokit, latestMainTag.commit.sha, issLabs);
-        console.log("================> commits in branch");
+        console.log("================> commits since alpha");
         const msgLevelB = await checkMessages(octokit, latestTag.commit.sha, issLabs);
+        console.log("================> commits in branch");
         const msgLevelC = await checkMessages(octokit, branchInfo.object.sha, issLabs);
 
         console.log(`commit messages suggest ${msgLevel} upgrade`);
