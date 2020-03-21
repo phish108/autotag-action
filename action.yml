@@ -1,5 +1,9 @@
-name: 'jstest'
-description: 'lightning fast autotagger for semver tagging'
+name: 'Autotag'
+author: 'phish108'
+description: 'Autotag with Semantic Versioning and Issue integration'
+branding:
+  icon: tag
+  color: blue
 inputs:
   github-token:  # id of input
     description: 'the GH token to connect to github from the action'
