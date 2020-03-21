@@ -1,10 +1,11 @@
 # autotag-action
 
-A lightning fast autotagger for `semver` tagging.
+A lightning fast autotagger for `semver`-tagging. This action scans the commit messages for fixed issues and semver changes. If a commit message fixes an issue, 
+`autotag-action` will check wether the issue was labled as an *enhancement* that triggers a `minor` release, or a bug fix that will be treated as a `patch`. 
 
 This action has been inspired by [anothrNick/github-tag-action](/anothrNick/github-tag-action), but is written completely in javascript and runs directly within the runner.
 
-`autotag-action` uses [`Octokit`](https://octokit.github.io/rest.js/v17) for tagging and does not depend on checking out the repository. 
+`autotag-action` uses [`Octokit`](https://octokit.github.io/rest.js) for tagging and does not depend on checking out the repository. 
 
 ## Inputs
 
@@ -34,13 +35,21 @@ This input is useful if subsequent steps manipulate a different branch, which sh
 
 ### `release-branch`
 
-**Optional** a comma-separated list of branch names or regular expressions. (Default: `master`)
+**Optional** A comma-separated list of branch names or regular expressions. (Default: `master`)
+
+### `tag`
+
+**Optional** Custom tag to be added to the current SHA. Will not perform any version bumping, but adds the provided tag.
+
+### `issue-labels`
+
+**Optional** A comma-separated list of issue labels that changes the bump level from `patch` to `minor` (Default: `enhancement`).
 
 ## Outputs
 
 ### `tag`
 
-The previous latest tag before this action ran.
+The previous latest tag before this action ran. This output is unavailable, when the `tag` input is used.
 
 ### `new-tag`
 
@@ -216,3 +225,9 @@ jobs:
           bump: ${{ steps.contributor.outputs.release || steps.bot.outputs.release }}
           with-v: true
 ```
+
+## More advanced usages
+
+The `tag` input allows to use a custom tag for tagging. This is useful when generating or applying tags. 
+
+The `issue-labels` input allows to define issues labels that should be considered as minor versions (API extensions). The default is the `enhancement` label. All other labels are treated as patches that do not change the API.
