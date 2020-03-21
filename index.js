@@ -57,9 +57,9 @@ async function checkMessages(octokit, latestTag, issueTags) {
     }
 
     const wip   = new RegExp("#wip\b");
-    const major = new RegExp("\b#major\b");
-    const minor = new RegExp("\b#minor\b");
-    const patch = new RegExp("\b#patch\b");
+    const major = new RegExp("#major\b");
+    const minor = new RegExp("#minor\b");
+    const patch = new RegExp("#patch\b");
 
     const fix   = new RegExp("fix(?:es)? #\d");
     const matcher = new RegExp(/fix(?:es)? #(\d+)\b/);
@@ -72,32 +72,32 @@ async function checkMessages(octokit, latestTag, issueTags) {
         console.log(`message is : "${message}" on ${commit.commit.committer.date} (${commit.sha})`);
 
         if (wip.test(message)) {
-            console.log("    found wip message, skip");
+            console.log("found wip message, skip");
             continue;
         }
 
         if (major.test(message)) {
-            console.log("    found major tag, stop");
+            console.log("found major tag, stop");
 
             releaseBump = "major";
             break;
         }
         
         if (minor.test(message)) {
-            console.log("    found minor tag");
+            console.log("found minor tag");
 
             releaseBump = "minor";
             continue;
         }
 
         if (releaseBump !== "minor" && patch.test(message)) {
-            console.log("    found patch tag");
+            console.log("found patch tag");
             releaseBump = "patch";
             continue;
         }
 
         if (releaseBump !== "minor" && fix.test(message)) {
-            console.log("    found a fix message, check issue for enhancements");
+            console.log("found a fix message, check issue for enhancements");
             releaseBump = "patch";
 
             const id = matcher.exec(message);
@@ -105,7 +105,7 @@ async function checkMessages(octokit, latestTag, issueTags) {
             if (id && Number(id[1]) > 0) {
                 const issue_number = Number(id[1]);
 
-                console.log(`    check issue ${issue_number} for minor labels`);
+                console.log(`check issue ${issue_number} for minor labels`);
 
                 const { data } = await octokit.issues.get({
                     owner,
@@ -117,17 +117,20 @@ async function checkMessages(octokit, latestTag, issueTags) {
                     for (const label of data.labels) {
 
                         if (issueTags.indexOf(label.name) >= 0) {
-                            console.log("    found enhancement issue");
+                            console.log("found enhancement issue");
                             releaseBump = "minor";
                             break;
                         }
                     }
                 }
                 else {
-                    console.log("    invalid issue");
+                    console.log("invalid issue");
                 }
             }
+
+            continue;
         }
+        console.log("no info message");
     }
 
     return releaseBump;
