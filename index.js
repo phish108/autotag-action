@@ -14,7 +14,7 @@ async function getLatestTag(octokit, boolAll = true) {
     // ensure the highest version number is the last element
     // strip all non version tags
     const allVTags = data
-        .filter(tag => semver.clean(tag) !== null);
+        .filter(tag => semver.clean(tag.name) !== null);
     
     allVTags
         .sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
