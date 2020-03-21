@@ -2289,7 +2289,7 @@ const semver = __webpack_require__(876);
 const owner = github.context.payload.repository.owner.name;
 const repo = github.context.payload.repository.name;
 
-async function getLatestTag(octokit) {
+async function getLatestTag(octokit, boolAll = true) {
     const { data } = await octokit.repos.listTags({
         owner,
         repo
@@ -2298,7 +2298,19 @@ async function getLatestTag(octokit) {
     // ensure the highest version number is the last element
     data.sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
 
-    return data.pop();
+    if (boolAll) {
+        return data.pop();
+    }
+
+    // filter prereleases
+    console.log("filter only main releases");
+    
+    const filtered = data.filter((b) => semver.prerelease(b.name) === null);
+    const result = result.pop();
+
+    console.log(`filtered release ${JSON.stringify(result, undefined, 2)}`);
+
+    return result;
 }
 
 async function loadBranch(octokit, branch) {
@@ -2453,8 +2465,10 @@ async function action() {
         console.log(`maching refs: ${ sha }`);
 
         const latestTag = await getLatestTag(octokit);
+        const latestMainTag = await getLatestTag(octokit, false);
 
         console.log(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
+        console.log(`the previous main tag of the repository ${ JSON.stringify(latestMainTag, undefined, 2) }`);
 
         const versionTag = latestTag ? latestTag.name : "0.0.0";
 
@@ -2474,6 +2488,8 @@ async function action() {
             branchName
         );
 
+        console.log(`default to prerelease version ${ nextVersion }`);
+
         let issLabs = ["enhancement"];
 
         if (issueLabels) {
@@ -2486,6 +2502,8 @@ async function action() {
 
         // check if commits and issues point to a diffent release
         const msgLevel = await checkMessages(octokit, latestTag, issLabs);
+
+        console.log(`commit messages suggest ${msgLevel} upgrade`)
         
         for (const branch of releaseBranch.split(",").map(b => b.trim())) {
             const testBranchName = new RegExp(branch);
@@ -2500,6 +2518,7 @@ async function action() {
                     console.log(`commit messages force bump level to ${msgLevel}`);
                     nextVersion = semver.inc(version, msgLevel);
                 }
+
                 break;
             }
         }
