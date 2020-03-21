@@ -2325,7 +2325,7 @@ async function loadBranch(octokit, branch) {
     return result.data.shift();
 }
 
-async function checkMessages(octokit, sha, issueTags) {
+async function checkMessages(octokit, sha, tagSha, issueTags) {
     // const sha = latestTag.commit.sha;
 
     console.log(`load commits since ${sha}`);
@@ -2354,6 +2354,9 @@ async function checkMessages(octokit, sha, issueTags) {
         // console.log(commit.message);
         const message = commit.commit.message;
 
+        if (commit.sha === tagSha) {
+            break;
+        }
         // console.log(`commit is : "${JSON.stringify(commit.commit, undefined, 2)}"`);
         console.log(`message is : "${message}" on ${commit.commit.committer.date} (${commit.sha})`);
 
@@ -2510,16 +2513,16 @@ async function action() {
         }
 
         // check if commits and issues point to a diffent release
-        console.log("================> commits since main");
-        const msgLevel = await checkMessages(octokit, latestMainTag.commit.sha, issLabs);
-        console.log("================> commits since alpha");
-        const msgLevelB = await checkMessages(octokit, latestTag.commit.sha, issLabs);
+        // console.log("================> commits since main");
+        // const msgLevel = await checkMessages(octokit, latestMainTag.commit.sha, issLabs);
+        // console.log("================> commits since alpha");
+        // const msgLevelB = await checkMessages(octokit, latestTag.commit.sha, issLabs);
         console.log("================> commits in branch");
-        const msgLevelC = await checkMessages(octokit, branchInfo.object.sha, issLabs);
+        const msgLevel = await checkMessages(octokit, branchInfo.object.sha, latestMainTag.commit.sha,  issLabs);
 
         console.log(`commit messages suggest ${msgLevel} upgrade`);
-        console.log(`commit messages since minor suggest ${msgLevelB} upgrade`);
-        console.log(`commit messages for branch suggest ${msgLevelC} upgrade`);
+        // console.log(`commit messages since minor suggest ${msgLevelB} upgrade`);
+        // console.log(`commit messages for branch suggest ${msgLevelC} upgrade`);
         
         for (const branch of releaseBranch.split(",").map(b => b.trim())) {
             const testBranchName = new RegExp(branch);
