@@ -41,8 +41,8 @@ async function loadBranch(octokit, branch) {
     return result.data.shift();
 }
 
-async function checkMessages(octokit, sha, tagSha, issueTags) {
-    // const sha = latestTag.commit.sha;
+async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
+    const sha = branchHeadSha;
 
     console.log(`load commits since ${sha}`);
 
@@ -74,10 +74,10 @@ async function checkMessages(octokit, sha, tagSha, issueTags) {
             break;
         }
         // console.log(`commit is : "${JSON.stringify(commit.commit, undefined, 2)}"`);
-        console.log(`message is : "${message}" on ${commit.commit.committer.date} (${commit.sha})`);
+        // console.log(`message is : "${message}" on ${commit.commit.committer.date} (${commit.sha})`);
 
         if (wip.test(message)) {
-            console.log("found wip message, skip");
+            // console.log("found wip message, skip");
             continue;
         }
 
@@ -89,14 +89,14 @@ async function checkMessages(octokit, sha, tagSha, issueTags) {
         }
         
         if (minor.test(message)) {
-            console.log("found minor tag");
+            // console.log("found minor tag");
 
             releaseBump = "minor";
             continue;
         }
 
         if (releaseBump !== "minor" && patch.test(message)) {
-            console.log("found patch tag");
+            // console.log("found patch tag");
             releaseBump = "patch";
             continue;
         }
@@ -135,10 +135,21 @@ async function checkMessages(octokit, sha, tagSha, issueTags) {
 
             continue;
         }
-        console.log("no info message");
+        // console.log("no info message");
     }
 
     return releaseBump;
+}
+
+function isReleaseBranch(branchName, branchList) {
+    for (const branch of branchList.split(",").map(b => b.trim())) {
+        const testBranchName = new RegExp(branch);
+
+        if (testBranchName.test(branchName)) {
+            return true;
+        }
+    }
+    return false;
 }
 
 async function action() {
@@ -229,32 +240,19 @@ async function action() {
         }
 
         // check if commits and issues point to a diffent release
-        // console.log("================> commits since main");
-        // const msgLevel = await checkMessages(octokit, latestMainTag.commit.sha, issLabs);
-        // console.log("================> commits since alpha");
-        // const msgLevelB = await checkMessages(octokit, latestTag.commit.sha, issLabs);
-        console.log("================> commits in branch");
+        console.log("commits in branch");
         const msgLevel = await checkMessages(octokit, branchInfo.object.sha, latestMainTag.commit.sha,  issLabs);
+        // console.log(`commit messages suggest ${msgLevel} upgrade`);
+    
+        if (isReleaseBranch(branchName, releaseBranch)) {
+            console.log(`${ branchName } is a release branch`);
 
-        console.log(`commit messages suggest ${msgLevel} upgrade`);
-        // console.log(`commit messages since minor suggest ${msgLevelB} upgrade`);
-        // console.log(`commit messages for branch suggest ${msgLevelC} upgrade`);
-        
-        for (const branch of releaseBranch.split(",").map(b => b.trim())) {
-            const testBranchName = new RegExp(branch);
-
-            if (testBranchName.test(branchName)) {
-                console.log(`${ branchName } is a release branch`);
-
-                if (msgLevel === "none") {
-                    nextVersion = semver.inc(version, level);
-                }
-                else {
-                    console.log(`commit messages force bump level to ${msgLevel}`);
-                    nextVersion = semver.inc(version, msgLevel);
-                }
-
-                break;
+            if (msgLevel === "none") {
+                nextVersion = semver.inc(version, level);
+            }
+            else {
+                console.log(`commit messages force bump level to ${msgLevel}`);
+                nextVersion = semver.inc(version, msgLevel);
             }
         }
 
