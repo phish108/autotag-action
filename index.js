@@ -154,7 +154,10 @@ async function action() {
     }
     
     // the sha for tagging
-    const sha = branchInfo.object.sha;
+    const sha        = branchInfo.object.sha;
+    const branchName = branchInfo.ref.split("/").pop();
+
+    console.log(`active branch name is ${ branchName }`);
 
     if (customTag) {
         // TODO check if the tag exists, and if not dryRun, then the previous tag should be removed.
@@ -184,7 +187,7 @@ async function action() {
         nextVersion = semver.inc(
             version, 
             "pre" + level, 
-            sha.slice(0, 6)
+            branchName
         );
 
         let issLabs = ["enhancement"];
@@ -199,9 +202,6 @@ async function action() {
 
         // check if commits and issues point to a diffent release
         const msgLevel = await checkMessages(octokit, latestTag, issLabs);
-
-        // check if the current branch is actually a release branch
-        const branchName = branchInfo.ref.split("/").pop();
         
         for (const branch of releaseBranch.split(",").map(b => b.trim())) {
             const testBranchName = new RegExp(branch);
