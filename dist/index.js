@@ -2470,7 +2470,7 @@ async function action() {
 
         nextVersion = semver.inc(
             version, 
-            "pre" + level, 
+            "prerelease", 
             branchName
         );
 
