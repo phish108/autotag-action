@@ -24,7 +24,7 @@ jobs:
   build:
     needs: merge
     if: github.actor == 'phish108' || startsWith(github.actor, 'dependabot')
-    
+
     runs-on: ubuntu-latest
 
     strategy:
@@ -46,6 +46,7 @@ jobs:
       uses: phish108/autotag-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        branch: master
         dry-run: 'TRUE'
         
     - run: | 
@@ -64,3 +65,4 @@ jobs:
     - uses: phish108/autotag-action@master
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
+        branch: master
