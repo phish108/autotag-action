@@ -203,8 +203,12 @@ async function action() {
     if (!branchInfo) {
         const activeBranch = github.context.ref.split("/").pop();
 
-        console.log(`load the history of activity-branch ${ activeBranch }`);
+        console.log(`load the history of activity-branch ${ activeBranch } was ${ github.context.ref }`);
         branchInfo  = await loadBranch(octokit, activeBranch);
+
+        if (!branchInfo) {
+            throw new Error(`failed to load branch ${ activeBranch }`);
+        }
     }
     
     // the sha for tagging
