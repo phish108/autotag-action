@@ -170,7 +170,7 @@ function isReleaseBranch(branchName, branchList) {
 async function action() {
     console.log(`run for ${ owner } / ${ repo }`);
 
-    console.log(`payload ${JSON.stringify(github.context.payload.repository, undefined, 2)}`);
+    // console.log(`payload ${JSON.stringify(github.context.payload.repository, undefined, 2)}`);
     
     // prepare octokit
     const token = core.getInput('github-token');
@@ -203,7 +203,7 @@ async function action() {
     if (!branchInfo) {
         const activeBranch = github.context.ref.replace(/refs\/heads\//, "");
 
-        console.log(`load the history of activity-branch ${ activeBranch } was ${ github.context.ref }`);
+        console.log(`load the history of activity-branch ${ activeBranch } from ${ github.context.ref }`);
         branchInfo  = await loadBranch(octokit, activeBranch);
 
         if (!branchInfo) {
