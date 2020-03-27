@@ -218,7 +218,7 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: phish108/autotag-action@1.1.10
+      - uses: phish/autotag-action@1.1.13
         env:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           branch: master
