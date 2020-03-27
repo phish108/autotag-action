@@ -2286,8 +2286,6 @@ const core   = __webpack_require__(470);
 const github = __webpack_require__(469);
 const semver = __webpack_require__(876);
 
-console.log(`payload ${JSON.stringify(github.context, undefined, 2)}`)
-
 const owner = github.context.payload.repository.owner.name;
 const repo = github.context.payload.repository.name;
 
@@ -2454,6 +2452,9 @@ function isReleaseBranch(branchName, branchList) {
 }
 
 async function action() {
+    console.log(`payload ${JSON.stringify(github.context, undefined, 2)}`);
+    console.log(`run for ${ owner } / ${ repo }`);
+
     // prepare octokit
     const token = core.getInput('github-token');
     const octokit = new github.GitHub(token);
