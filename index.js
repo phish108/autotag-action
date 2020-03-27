@@ -168,9 +168,10 @@ function isReleaseBranch(branchName, branchList) {
 }
 
 async function action() {
-    console.log(`payload ${JSON.stringify(github.context, undefined, 2)}`);
     console.log(`run for ${ owner } / ${ repo }`);
 
+    console.log(`payload ${JSON.stringify(github.context.payload.repository, undefined, 2)}`);
+    
     // prepare octokit
     const token = core.getInput('github-token');
     const octokit = new github.GitHub(token);
