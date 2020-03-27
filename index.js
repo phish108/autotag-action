@@ -2,7 +2,7 @@ const core   = require('@actions/core');
 const github = require('@actions/github');
 const semver = require('semver');
 
-const owner = github.context.payload.repository.owner.name;
+const owner = github.context.payload.repository.owner.login;
 const repo = github.context.payload.repository.name;
 
 async function checkTag(octokit, tagName) {
