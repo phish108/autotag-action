@@ -209,11 +209,9 @@ jobs:
           bump: ${{ steps.contributor.outputs.release || steps.bot.outputs.release }}
           dry-run: 'true'
 
-      - run: npm --no-git-tag-version --allow-same-version version ${{ steps.tagger.outputs.new_tag }}
-
-      - run: git commit -m "version bump to $NPM_VERSION" -a
-        env: 
-          NPM_VERSION: ${{ steps.tagger.outputs.new_tag }}
+      - run: | 
+          npm --no-git-tag-version --allow-same-version version "${{ steps.tagger.outputs.new-tag }}"
+          git commit -m "version bump to ${{ steps.tagger.outputs.new-tag }}" -a
 
       - name: Push changes
         uses: ad-m/github-push-action@master
