@@ -2,8 +2,6 @@ const core   = require('@actions/core');
 const github = require('@actions/github');
 const semver = require('semver');
 
-console.log(`payload ${JSON.stringify(github.context, undefined, 2)}`)
-
 const owner = github.context.payload.repository.owner.name;
 const repo = github.context.payload.repository.name;
 
@@ -170,6 +168,9 @@ function isReleaseBranch(branchName, branchList) {
 }
 
 async function action() {
+    console.log(`payload ${JSON.stringify(github.context, undefined, 2)}`);
+    console.log(`run for ${ owner } / ${ repo }`);
+
     // prepare octokit
     const token = core.getInput('github-token');
     const octokit = new github.GitHub(token);
