@@ -37,7 +37,7 @@ jobs:
         npm ci
         npm run package
         npm --no-git-tag-version --allow-same-version version ${{ steps.tagger.outputs.new-tag }} 
-        sed -i s/phish108\/autotag-action@[0-9]*\.[0-9]*\.[0-9]*/phish\/autotag-action@${{ steps.tagger.outputs.new-tag }} README.md
+        sed -ire "s/phish108\/autotag-action@[0-9]*\.[0-9]*\.[0-9]*/phish\/autotag-action@${{ steps.tagger.outputs.new-tag }}/g" README.md
         git commit -m "updated dist file for $GITSHA" -a 
       env:
         GITSHA: ${{ github.sha }}
