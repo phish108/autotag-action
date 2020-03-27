@@ -4,12 +4,27 @@
 name: Node.js CI
 
 on:
-  push:
+  pull_request:
     branches: [ master ]
 
 jobs:
+  merge: 
+    if: github.actor == 'phish108' ||  startsWith(github.actor, 'dependabot')
+    
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: automerge
+      uses: "pascalgn/automerge-action@5ad9f38505afff96c6ad2d1c1bf2775135a7d309"
+      env:
+        GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
+        MERGE_LABELS: ""
+
   build:
+    needs: merge
     if: github.actor == 'phish108' || startsWith(github.actor, 'dependabot')
+    
     runs-on: ubuntu-latest
 
     strategy:
