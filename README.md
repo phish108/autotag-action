@@ -205,6 +205,7 @@ jobs:
         id: tagger
         env:
           github-token: ${{ secrets.GITHUB_TOKEN }}
+          branch: master
           bump: ${{ steps.contributor.outputs.release || steps.bot.outputs.release }}
           dry-run: 'true'
 
@@ -219,10 +220,10 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
 
-      - uses: phish108/github-tag-action@1.1.10
+      - uses: phish108/autotag-action@1.1.10
         env:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          branch: "master"
+          branch: master
           bump: ${{ steps.contributor.outputs.release || steps.bot.outputs.release }}
           with-v: true
 ```
