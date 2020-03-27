@@ -2487,7 +2487,7 @@ async function action() {
     if (!branchInfo) {
         const activeBranch = github.context.ref.replace(/refs\/heads\//, "");
 
-        console.log(`load the history of activity-branch ${ activeBranch } from ${ github.context.ref }`);
+        console.log(`load the history of activity-branch ${ activeBranch } from context ref ${ github.context.ref }`);
         branchInfo  = await loadBranch(octokit, activeBranch);
 
         if (!branchInfo) {
