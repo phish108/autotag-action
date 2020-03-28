@@ -9,15 +9,15 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/phish108/jstest-action.git"
+    "url": "git+https://github.com/phish108/autotag-action.git"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/phish108/jstest-action/issues"
+    "url": "https://github.com/phish108/autotag-action/issues"
   },
-  "homepage": "https://github.com/phish108/jstest-action#readme",
+  "homepage": "https://github.com/phish108/autotag-action#readme",
   "dependencies": {
     "@actions/core": "1.2.3",
     "@actions/github": "2.1.1",
