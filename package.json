@@ -19,7 +19,7 @@
   },
   "homepage": "https://github.com/phish108/jstest-action#readme",
   "dependencies": {
-    "@actions/core": "1.2.3",
+    "@actions/core": "1.2.4",
     "@actions/github": "2.1.1",
     "semver": "7.3.2"
   },
