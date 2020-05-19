@@ -24,7 +24,7 @@
     "semver": "7.3.2"
   },
   "devDependencies": {
-    "@zeit/ncc": "0.22.1",
+    "@zeit/ncc": "0.22.2",
     "eslint": "7.0.0"
   }
 }
