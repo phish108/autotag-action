@@ -174,7 +174,7 @@ async function action() {
     
     // prepare octokit
     const token = core.getInput('github-token');
-    const octokit = new github.GitHub(token);
+    const octokit = new github.github(token);
     
     // load inputs
     // const customTag     = core.getInput('custom-tag');
