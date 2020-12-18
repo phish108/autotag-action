@@ -56,8 +56,24 @@ jobs:
           exit 1
         fi
 
-  build:
+  verify: 
     needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: check changes
+        id: release
+        uses: phish108/release-check@1.0.3
+      - name: only dev changes
+        run: exit 1
+        if: ${{ steps.release.outputs.hold_development }}
+      - name: only protected changes
+        run: exit 1
+        if: ${{ steps.release.outputs.hold_protected }}
+      - name: Proceed to release
+        run: echo OK
+
+  build:
+    needs: verify
 
     if: github.actor == 'phish108' || startsWith(github.actor, 'dependabot')
     runs-on: ubuntu-latest
