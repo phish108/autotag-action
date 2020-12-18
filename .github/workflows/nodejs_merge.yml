@@ -54,19 +54,19 @@ jobs:
     
     # may fail
     - name: Autotag Draft
-        uses: phish108/autotag-action@master
-        id: taggerTest
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          branch: master
-          dry-run: 'true'
+      uses: phish108/autotag-action@master
+      id: taggerTest
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        branch: master
+        dry-run: 'true'
 
-      - name: verify Tags
-        run: |
-          if [ "${{ steps.tagger.outputs.new-tag }}" != "${{ steps.taggerTest.outputs.new-tag }}" ]
-          then
-            exit 1
-          fi
+    - name: verify Tags
+      run: |
+        if [ "${{ steps.tagger.outputs.new-tag }}" != "${{ steps.taggerTest.outputs.new-tag }}" ]
+        then
+          exit 1
+        fi
         
     - run: | 
         npm ci
