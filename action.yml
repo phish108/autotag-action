@@ -27,7 +27,7 @@ inputs:
   release-branch: 
     description: "provide the names from which branches to release"
     required: true
-    default: "master"
+    default: "main,master"
 outputs:
   new-tag: # id of output
     description: 'new tag'
