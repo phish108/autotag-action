@@ -24,7 +24,7 @@
     "semver": "7.3.4"
   },
   "devDependencies": {
-    "@vercel/ncc": "0.25.1",
+    "@vercel/ncc": "0.26.0",
     "eslint": "7.14.0"
   }
 }
