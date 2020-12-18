@@ -8,14 +8,22 @@ on:
     branches: [ master ]
 
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v1
+      with:
+        node-version: 14
+    - run: npm ci
+    - run: npm run lint
+
   build:
+    needs: lint
+
     if: github.actor == 'phish108' || startsWith(github.actor, 'dependabot')
     runs-on: ubuntu-latest
-
-    strategy:
-      matrix:
-        node-version: 
-        - 14.x
 
     steps:
     - uses: actions/checkout@v2
@@ -23,10 +31,10 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
 
-    - name: Use Node.js ${{ matrix.node-version }}
+    - name: Use Node.js 14
       uses: actions/setup-node@v1
       with:
-        node-version: ${{ matrix.node-version }} 
+        node-version: 14
     
     - id: tagger
       uses: phish108/autotag-action@1.1.26
@@ -35,19 +43,19 @@ jobs:
         dry-run: 'TRUE'
     
     - name: Autotag Draft
-        uses: phish108/autotag-action@master
-        id: taggerTest
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          branch: master
-          dry-run: 'true'
+      uses: phish108/autotag-action@master
+      id: taggerTest
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        branch: master
+        dry-run: 'true'
 
-      - name: verify Tags
-        run: |
-          if [ "${{ steps.tagger.outputs.new-tag }}" != "${{ steps.taggerTest.outputs.new-tag }}" ]
-          then
-            exit 1
-          fi
+    - name: verify Tags
+      run: |
+        if [ "${{ steps.tagger.outputs.new-tag }}" != "${{ steps.taggerTest.outputs.new-tag }}" ]
+        then
+          exit 1
+        fi
 
     - run: | 
         npm ci

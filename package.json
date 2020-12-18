@@ -4,6 +4,7 @@
   "description": "",
   "main": "dist/index.js",
   "scripts": {
+    "lint": "eslint index.js",
     "test": "echo \"Error: no test specified\" && exit 1",
     "package": "ncc build index.js -o dist"
   },
@@ -25,6 +26,8 @@
   },
   "devDependencies": {
     "@vercel/ncc": "0.26.0",
-    "eslint": "7.14.0"
+    "babel-eslint": "10.1.0",
+    "eslint": "7.14.0",
+    "eslint-plugin-babel": "5.3.1"
   }
 }
