@@ -39,7 +39,7 @@ async function getLatestTag(octokit, boolAll = true) {
     // strip all non version tags
     const allVTags = data
         .filter(tag => semver.clean(tag.name) !== null);
-    
+
     allVTags
         .sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
 
@@ -48,8 +48,8 @@ async function getLatestTag(octokit, boolAll = true) {
     }
 
     // filter prereleases
-    // console.log("filter only main releases");
-    
+    // core.info("filter only main releases");
+
     const filtered = allVTags.filter((b) => semver.prerelease(b.name) === null);
     const result = filtered.pop();
 
@@ -63,14 +63,14 @@ async function loadBranch(octokit, branch) {
         ref: `heads/${branch}`
     });
 
-    // console.log(`branch data: ${ JSON.stringify(result.data, undefined, 2) } `);
+    // core.info(`branch data: ${ JSON.stringify(result.data, undefined, 2) } `);
     return result.data.shift();
 }
 
 async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
     const sha = branchHeadSha;
 
-    // console.log(`load commits since ${sha}`);
+    // core.info(`load commits since ${sha}`);
 
     let releaseBump = "none";
 
@@ -93,52 +93,52 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
     const matcher = new RegExp(/fix(?:es)? #(\d+)\b/);
 
     for (const commit of result.data) {
-        // console.log(commit.message);
+        // core.info(commit.message);
         const message = commit.commit.message;
 
         if (commit.sha === tagSha) {
             break;
         }
-        // console.log(`commit is : "${JSON.stringify(commit.commit, undefined, 2)}"`);
-        // console.log(`message is : "${message}" on ${commit.commit.committer.date} (${commit.sha})`);
+        // core.info(`commit is : "${JSON.stringify(commit.commit, undefined, 2)}"`);
+        // core.info(`message is : "${message}" on ${commit.commit.committer.date} (${commit.sha})`);
 
         if (wip.test(message)) {
-            // console.log("found wip message, skip");
+            // core.info("found wip message, skip");
             continue;
         }
 
         if (major.test(message)) {
-            // console.log("found major tag, stop");
+            // core.info("found major tag, stop");
             return "major";
         }
-        
+
         if (minor.test(message)) {
-            // console.log("found minor tag");
+            // core.info("found minor tag");
 
             releaseBump = "minor";
             continue;
         }
 
         if (releaseBump !== "minor" && patch.test(message)) {
-            // console.log("found patch tag");
+            // core.info("found patch tag");
             releaseBump = "patch";
             continue;
         }
 
         if (releaseBump !== "minor" && fix.test(message)) {
-            // console.log("found a fix message, check issue for enhancements");
+            // core.info("found a fix message, check issue for enhancements");
 
             const id = matcher.exec(message);
 
             if (id && Number(id[1]) > 0) {
                 const issue_number = Number(id[1]);
 
-                console.log(`check issue ${issue_number} for minor labels`);
+                core.info(`check issue ${issue_number} for minor labels`);
 
                 const { data } = await octokit.issues.get({
                     owner,
                     repo,
-                    issue_number    
+                    issue_number
                 });
 
                 if (data) {
@@ -147,7 +147,7 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
                     for (const label of data.labels) {
 
                         if (issueTags.indexOf(label.name) >= 0) {
-                            console.log("found enhancement issue");
+                            core.info("found enhancement issue");
                             releaseBump = "minor";
                             break;
                         }
@@ -157,7 +157,7 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
 
             // continue;
         }
-        // console.log("no info message");
+        // core.info("no info message");
     }
 
     return releaseBump;
@@ -175,54 +175,54 @@ function isReleaseBranch(branchName, branchList) {
 }
 
 async function action() {
-    console.log(`run for ${ owner } / ${ repo }`);
+    core.info(`run for ${ owner } / ${ repo }`);
 
-    // console.log(`payload ${JSON.stringify(github.context.payload.repository, undefined, 2)}`);
-    
+    // core.info(`payload ${JSON.stringify(github.context.payload.repository, undefined, 2)}`);
+
     // prepare octokit
-    const token = core.getInput('github-token');
+    const token = core.getInput("github-token");
     const octokit = new github.getOctokit(token);
-    
+
     // load inputs
     // const customTag     = core.getInput('custom-tag');
-    const dryRun        = core.getInput('dry-run').toLowerCase();
-    const level         = core.getInput('bump');
-    const forceBranch   = core.getInput('branch');
-    const releaseBranch = core.getInput('release-branch');
-    const withV         = core.getInput('with-v').toLowerCase() === "false" ? "" : "v";
-    const customTag     = core.getInput('tag');
-    const issueLabels   = core.getInput('issue-labels');
+    const dryRun        = core.getInput("dry-run").toLowerCase();
+    const level         = core.getInput("bump");
+    const forceBranch   = core.getInput("branch");
+    const releaseBranch = core.getInput("release-branch");
+    const withV         = core.getInput("with-v").toLowerCase() === "false" ? "" : "v";
+    const customTag     = core.getInput("tag");
+    const issueLabels   = core.getInput("issue-labels");
 
     let branchInfo, nextVersion;
 
     if (forceBranch) {
-        console.log(`check forced branch ${forceBranch}`);
+        core.info(`check forced branch ${forceBranch}`);
 
         branchInfo = await loadBranch(octokit, forceBranch);
 
         if (!branchInfo) {
-            throw new Error("unknown branch provided");       
+            throw new Error("unknown branch provided");
         }
-    
-        console.log("branch confirmed, continue");    
+
+        core.info("branch confirmed, continue");
     }
 
     if (!branchInfo) {
         const activeBranch = github.context.ref.replace(/refs\/heads\//, "");
 
-        console.log(`load the history of activity-branch ${ activeBranch } from context ref ${ github.context.ref }`);
+        core.info(`load the history of activity-branch ${ activeBranch } from context ref ${ github.context.ref }`);
         branchInfo  = await loadBranch(octokit, activeBranch);
 
         if (!branchInfo) {
             throw new Error(`failed to load branch ${ activeBranch }`);
         }
     }
-    
+
     // the sha for tagging
     const sha        = branchInfo.object.sha;
     const branchName = branchInfo.ref.split("/").pop();
 
-    console.log(`active branch name is ${ branchName }`);
+    core.info(`active branch name is ${ branchName }`);
 
     if (customTag){
         if (checkTag(octokit, customTag)) {
@@ -233,13 +233,13 @@ async function action() {
     }
     else {
 
-        console.log(`maching refs: ${ sha }`);
+        core.info(`maching refs: ${ sha }`);
 
         const latestTag = await getLatestTag(octokit);
         const latestMainTag = await getLatestTag(octokit, false);
 
-        console.log(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
-        console.log(`the previous main tag of the repository ${ JSON.stringify(latestMainTag, undefined, 2) }`);
+        core.info(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
+        core.info(`the previous main tag of the repository ${ JSON.stringify(latestMainTag, undefined, 2) }`);
 
         const versionTag = latestTag ? latestTag.name : "0.0.0";
 
@@ -249,22 +249,22 @@ async function action() {
             throw new Error("no new commits, avoid tagging");
         }
 
-        console.log(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
+        core.info(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
 
         const version   = semver.clean(versionTag);
 
         nextVersion = semver.inc(
-            version, 
-            "prerelease", 
+            version,
+            "prerelease",
             branchName
         );
 
-        console.log(`default to prerelease version ${ nextVersion }`);
+        core.info(`default to prerelease version ${ nextVersion }`);
 
         let issLabs = ["enhancement"];
 
         if (issueLabels) {
-            const xlabels = issueLabels.split(',').map(lab => lab.trim());
+            const xlabels = issueLabels.split(",").map(lab => lab.trim());
 
             if (xlabels.length) {
                 issLabs = xlabels;
@@ -272,39 +272,39 @@ async function action() {
         }
 
         // check if commits and issues point to a diffent release
-        console.log("commits in branch");
+        core.info("commits in branch");
         const msgLevel = await checkMessages(octokit, branchInfo.object.sha, latestMainTag.commit.sha,  issLabs);
-        // console.log(`commit messages suggest ${msgLevel} upgrade`);
-    
+        // core.info(`commit messages suggest ${msgLevel} upgrade`);
+
         if (isReleaseBranch(branchName, releaseBranch)) {
-            console.log(`${ branchName } is a release branch`);
+            core.info(`${ branchName } is a release branch`);
 
             if (msgLevel === "none") {
                 nextVersion = semver.inc(version, level);
             }
             else {
-                console.log(`commit messages force bump level to ${msgLevel}`);
+                core.info(`commit messages force bump level to ${msgLevel}`);
                 nextVersion = semver.inc(version, msgLevel);
             }
         }
 
-        console.log( `bump tag ${ nextVersion }` );
+        core.info( `bump tag ${ nextVersion }` );
 
         core.setOutput("new-tag", nextVersion);
     }
 
     if (dryRun === "true") {
-        console.log("dry run, don't perform tagging");
-        return
+        core.info("dry run, don't perform tagging");
+        return;
     }
 
     const newTag = `${ withV }${ nextVersion }`;
 
-    console.log(`really add tag ${ customTag ? customTag : newTag }`);
+    core.info(`really add tag ${ customTag ? customTag : newTag }`);
 
     const ref = `refs/tags/${ customTag ? customTag : newTag }`;
 
-    const result = await octokit.git.createRef({
+    await octokit.git.createRef({
         owner,
         repo,
         ref,
@@ -313,8 +313,8 @@ async function action() {
 }
 
 action()
-    .then(() => console.log("success"))
-    .catch(error => core.setFailed(error.message))
+    .then(() => core.info("success"))
+    .catch(error => core.setFailed(error.message));
 
 
 /***/ }),
