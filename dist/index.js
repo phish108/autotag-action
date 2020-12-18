@@ -180,7 +180,7 @@ async function action() {
     // core.info(`payload ${JSON.stringify(github.context.payload.repository, undefined, 2)}`);
 
     // prepare octokit
-    const token = core.getInput("github-token");
+    const token = core.getInput("github-token", {required: true});
     const octokit = new github.getOctokit(token);
 
     // load inputs
