@@ -19,10 +19,9 @@ jobs:
     - run: npm ci
     - run: npm run lint
 
-  build:
+  test:
     needs: lint
 
-    if: github.actor == 'phish108' || startsWith(github.actor, 'dependabot')
     runs-on: ubuntu-latest
 
     steps:
@@ -57,6 +56,29 @@ jobs:
           exit 1
         fi
 
+  build:
+    needs: test
+
+    if: github.actor == 'phish108' || startsWith(github.actor, 'dependabot')
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - run: |
+        git config --local user.email "action@github.com"
+        git config --local user.name "GitHub Action"
+
+    - name: Use Node.js 14
+      uses: actions/setup-node@v1
+      with:
+        node-version: 14
+    
+    - id: tagger
+      uses: phish108/autotag-action@1.1.26
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        dry-run: 'TRUE'
+    
     - run: | 
         npm ci
         npm run package
