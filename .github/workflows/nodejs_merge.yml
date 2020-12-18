@@ -39,16 +39,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
-    - run: |
-        git config --local user.email "action@github.com"
-        git config --local user.name "GitHub Action"
-
-    - name: Use Node.js 14
-      uses: actions/setup-node@v1
-      with:
-        node-version: 14
-    
     - id: tagger
       uses: phish108/autotag-action@1.1.26
       with:
