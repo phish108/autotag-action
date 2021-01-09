@@ -97,19 +97,25 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
 
+    - name: check changes
+      id: release
+      uses: phish108/release-check@1.0.11
+
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }} 
     
     - id: tagger
+      if: ${{ steps.release.outputs.proceed == 'true' }}
       uses: phish108/autotag-action@1.1.29
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         branch: master
         dry-run: 'TRUE'
          
-    - run: | 
+    - if: ${{ steps.release.outputs.proceed == 'true' }}
+      run: | 
         npm ci
         npm run package
         npm --no-git-tag-version --allow-same-version version ${{ steps.tagger.outputs.new-tag }} 
@@ -120,11 +126,13 @@ jobs:
 
     # very risky ... 
     - name: Push changes
+      if: ${{ steps.release.outputs.proceed == 'true' }}
       uses: ad-m/github-push-action@master
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
     
     - uses: phish108/autotag-action@1.1.29
+      if: ${{ steps.release.outputs.proceed == 'true' }}
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         branch: master
