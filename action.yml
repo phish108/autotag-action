@@ -6,15 +6,16 @@ branding:
   color: blue
 inputs:
   github-token:  # id of input
+    default: ${{ github.token }}
+    required: false
     description: 'the GH token to connect to github from the action'
-    required: true
   dry-run: 
     description: "check if the action would succeed"
     required: false
     default: "FALSE"
   bump: 
     description: "which part of the semver needs to be updated?"
-    required: true
+    required: false
     default: "patch"
   branch: 
     description: "force to tag a specific branch"
@@ -26,7 +27,7 @@ inputs:
     default: "FALSE"
   release-branch: 
     description: "provide the names from which branches to release"
-    required: true
+    required: false
     default: "main,master"
 outputs:
   new-tag: # id of output
