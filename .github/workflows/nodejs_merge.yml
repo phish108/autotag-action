@@ -46,6 +46,7 @@ jobs:
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         dry-run: 'TRUE'
+        branch: master 
     
     - name: Autotag Draft
       uses: phish108/autotag-action@master
@@ -54,6 +55,7 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         branch: master
         dry-run: 'true'
+        branch: master
 
     - name: verify Tags
       run: |
