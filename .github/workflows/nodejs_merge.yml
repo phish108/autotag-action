@@ -55,7 +55,6 @@ jobs:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         branch: master
         dry-run: 'true'
-        branch: master
 
     - name: verify Tags
       run: |
