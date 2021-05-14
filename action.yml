@@ -29,6 +29,10 @@ inputs:
     description: "provide the names from which branches to release"
     required: false
     default: "main,master"
+  issue-labels:
+    description: "provide a comma separated list of labels that trigger a minor version bump"
+    required: false
+    default: "enhancement"
 outputs:
   new-tag: # id of output
     description: 'new tag'
