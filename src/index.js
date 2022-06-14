@@ -1,10 +1,10 @@
-import * as core from "@actions/core";
-import * as github from "@actions/github";
-import * as semver from "semver";
+// import * as core from "@actions/core";
+// import * as github from "@actions/github";
+// import * as semver from "semver";
 
-// const core   = require("@actions/core");
-// const github = require("@actions/github");
-// const semver = require("semver");
+const core   = require("@actions/core");
+const github = require("@actions/github");
+const semver = require("semver");
 
 const owner = github.context.payload.repository.owner.login;
 const repo = github.context.payload.repository.name;
