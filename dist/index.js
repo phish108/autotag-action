@@ -11976,7 +11976,7 @@ const owner = github.context.payload.repository.owner.login;
 const repo = github.context.payload.repository.name;
 
 async function checkTag(octokit, tagName) {
-    const { data } = await octokit.repos.listTags({
+    const { data } = await octokit.rest.repos.listTags({
         owner,
         repo
     });
@@ -11993,7 +11993,7 @@ async function checkTag(octokit, tagName) {
 }
 
 async function getLatestTag(octokit, boolAll = true) {
-    const { data } = await octokit.repos.listTags({
+    const { data } = await octokit.rest.repos.listTags({
         owner,
         repo
     });
