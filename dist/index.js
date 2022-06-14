@@ -7089,6 +7089,7 @@ class Comparator {
   static get ANY () {
     return ANY
   }
+
   constructor (comp, options) {
     options = parseOptions(options)
 
@@ -7165,7 +7166,7 @@ class Comparator {
     if (!options || typeof options !== 'object') {
       options = {
         loose: !!options,
-        includePrerelease: false
+        includePrerelease: false,
       }
     }
 
@@ -7213,7 +7214,7 @@ class Comparator {
 module.exports = Comparator
 
 const parseOptions = __nccwpck_require__(785)
-const {re, t} = __nccwpck_require__(9523)
+const { re, t } = __nccwpck_require__(9523)
 const cmp = __nccwpck_require__(5098)
 const debug = __nccwpck_require__(427)
 const SemVer = __nccwpck_require__(8088)
@@ -7256,9 +7257,9 @@ class Range {
     // First, split based on boolean or ||
     this.raw = range
     this.set = range
-      .split(/\s*\|\|\s*/)
+      .split('||')
       // map the range to a 2d array of comparators
-      .map(range => this.parseRange(range.trim()))
+      .map(r => this.parseRange(r.trim()))
       // throw out any comparator lists that are empty
       // this generally means that it was not a valid range, which is allowed
       // in loose mode, but will still throw if the WHOLE range is invalid.
@@ -7273,9 +7274,9 @@ class Range {
       // keep the first one, in case they're all null sets
       const first = this.set[0]
       this.set = this.set.filter(c => !isNullSet(c[0]))
-      if (this.set.length === 0)
+      if (this.set.length === 0) {
         this.set = [first]
-      else if (this.set.length > 1) {
+      } else if (this.set.length > 1) {
         // if we have any that are *, then the range is just *
         for (const c of this.set) {
           if (c.length === 1 && isAny(c[0])) {
@@ -7311,8 +7312,9 @@ class Range {
     const memoOpts = Object.keys(this.options).join(',')
     const memoKey = `parseRange:${memoOpts}:${range}`
     const cached = cache.get(memoKey)
-    if (cached)
+    if (cached) {
       return cached
+    }
 
     const loose = this.options.loose
     // `1.2.3 - 1.2.4` => `>=1.2.3 <=1.2.4`
@@ -7321,7 +7323,7 @@ class Range {
     debug('hyphen replace', range)
     // `> 1.2.3 < 1.2.5` => `>1.2.3 <1.2.5`
     range = range.replace(re[t.COMPARATORTRIM], comparatorTrimReplace)
-    debug('comparator trim', range, re[t.COMPARATORTRIM])
+    debug('comparator trim', range)
 
     // `~ 1.2.3` => `~1.2.3`
     range = range.replace(re[t.TILDETRIM], tildeTrimReplace)
@@ -7335,30 +7337,37 @@ class Range {
     // At this point, the range is completely trimmed and
     // ready to be split into comparators.
 
-    const compRe = loose ? re[t.COMPARATORLOOSE] : re[t.COMPARATOR]
-    const rangeList = range
+    let rangeList = range
       .split(' ')
       .map(comp => parseComparator(comp, this.options))
       .join(' ')
       .split(/\s+/)
       // >=0.0.0 is equivalent to *
       .map(comp => replaceGTE0(comp, this.options))
+
+    if (loose) {
       // in loose mode, throw out any that are not valid comparators
-      .filter(this.options.loose ? comp => !!comp.match(compRe) : () => true)
-      .map(comp => new Comparator(comp, this.options))
+      rangeList = rangeList.filter(comp => {
+        debug('loose invalid filter', comp, this.options)
+        return !!comp.match(re[t.COMPARATORLOOSE])
+      })
+    }
+    debug('range list', rangeList)
 
     // if any comparators are the null set, then replace with JUST null set
     // if more than one comparator, remove any * comparators
     // also, don't include the same comparator more than once
-    const l = rangeList.length
     const rangeMap = new Map()
-    for (const comp of rangeList) {
-      if (isNullSet(comp))
+    const comparators = rangeList.map(comp => new Comparator(comp, this.options))
+    for (const comp of comparators) {
+      if (isNullSet(comp)) {
         return [comp]
+      }
       rangeMap.set(comp.value, comp)
     }
-    if (rangeMap.size > 1 && rangeMap.has(''))
+    if (rangeMap.size > 1 && rangeMap.has('')) {
       rangeMap.delete('')
+    }
 
     const result = [...rangeMap.values()]
     cache.set(memoKey, result)
@@ -7423,7 +7432,7 @@ const {
   t,
   comparatorTrimReplace,
   tildeTrimReplace,
-  caretTrimReplace
+  caretTrimReplace,
 } = __nccwpck_require__(9523)
 
 const isNullSet = c => c.value === '<0.0.0-0'
@@ -7472,8 +7481,8 @@ const isX = id => !id || id.toLowerCase() === 'x' || id === '*'
 // ~1.2.3, ~>1.2.3 --> >=1.2.3 <1.3.0-0
 // ~1.2.0, ~>1.2.0 --> >=1.2.0 <1.3.0-0
 const replaceTildes = (comp, options) =>
-  comp.trim().split(/\s+/).map((comp) => {
-    return replaceTilde(comp, options)
+  comp.trim().split(/\s+/).map((c) => {
+    return replaceTilde(c, options)
   }).join(' ')
 
 const replaceTilde = (comp, options) => {
@@ -7511,8 +7520,8 @@ const replaceTilde = (comp, options) => {
 // ^1.2.3 --> >=1.2.3 <2.0.0-0
 // ^1.2.0 --> >=1.2.0 <2.0.0-0
 const replaceCarets = (comp, options) =>
-  comp.trim().split(/\s+/).map((comp) => {
-    return replaceCaret(comp, options)
+  comp.trim().split(/\s+/).map((c) => {
+    return replaceCaret(c, options)
   }).join(' ')
 
 const replaceCaret = (comp, options) => {
@@ -7570,8 +7579,8 @@ const replaceCaret = (comp, options) => {
 
 const replaceXRanges = (comp, options) => {
   debug('replaceXRanges', comp, options)
-  return comp.split(/\s+/).map((comp) => {
-    return replaceXRange(comp, options)
+  return comp.split(/\s+/).map((c) => {
+    return replaceXRange(c, options)
   }).join(' ')
 }
 
@@ -7632,8 +7641,9 @@ const replaceXRange = (comp, options) => {
         }
       }
 
-      if (gtlt === '<')
+      if (gtlt === '<') {
         pr = '-0'
+      }
 
       ret = `${gtlt + M}.${m}.${p}${pr}`
     } else if (xm) {
@@ -8009,7 +8019,7 @@ class SemVer {
         if (identifier) {
           // 1.2.0-beta.1 bumps to 1.2.0-beta.2,
           // 1.2.0-beta.fooblz or 1.2.0-beta bumps to 1.2.0-beta.0
-          if (this.prerelease[0] === identifier) {
+          if (compareIdentifiers(this.prerelease[0], identifier) === 0) {
             if (isNaN(this.prerelease[1])) {
               this.prerelease = [identifier, 0]
             }
@@ -8059,17 +8069,21 @@ const lte = __nccwpck_require__(7520)
 const cmp = (a, op, b, loose) => {
   switch (op) {
     case '===':
-      if (typeof a === 'object')
+      if (typeof a === 'object') {
         a = a.version
-      if (typeof b === 'object')
+      }
+      if (typeof b === 'object') {
         b = b.version
+      }
       return a === b
 
     case '!==':
-      if (typeof a === 'object')
+      if (typeof a === 'object') {
         a = a.version
-      if (typeof b === 'object')
+      }
+      if (typeof b === 'object') {
         b = b.version
+      }
       return a !== b
 
     case '':
@@ -8106,7 +8120,7 @@ module.exports = cmp
 
 const SemVer = __nccwpck_require__(8088)
 const parse = __nccwpck_require__(5925)
-const {re, t} = __nccwpck_require__(9523)
+const { re, t } = __nccwpck_require__(9523)
 
 const coerce = (version, options) => {
   if (version instanceof SemVer) {
@@ -8149,8 +8163,9 @@ const coerce = (version, options) => {
     re[t.COERCERTL].lastIndex = -1
   }
 
-  if (match === null)
+  if (match === null) {
     return null
+  }
 
   return parse(`${match[2]}.${match[3] || '0'}.${match[4] || '0'}`, options)
 }
@@ -8267,7 +8282,10 @@ const inc = (version, release, options, identifier) => {
   }
 
   try {
-    return new SemVer(version, options).inc(release, identifier).version
+    return new SemVer(
+      version instanceof SemVer ? version.version : version,
+      options
+    ).inc(release, identifier).version
   } catch (er) {
     return null
   }
@@ -8330,7 +8348,7 @@ module.exports = neq
 /***/ 5925:
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
-const {MAX_LENGTH} = __nccwpck_require__(2293)
+const { MAX_LENGTH } = __nccwpck_require__(2293)
 const { re, t } = __nccwpck_require__(9523)
 const SemVer = __nccwpck_require__(8088)
 
@@ -8514,7 +8532,7 @@ const SEMVER_SPEC_VERSION = '2.0.0'
 
 const MAX_LENGTH = 256
 const MAX_SAFE_INTEGER = Number.MAX_SAFE_INTEGER ||
-  /* istanbul ignore next */ 9007199254740991
+/* istanbul ignore next */ 9007199254740991
 
 // Max safe segment length for coercion.
 const MAX_SAFE_COMPONENT_LENGTH = 16
@@ -8523,7 +8541,7 @@ module.exports = {
   SEMVER_SPEC_VERSION,
   MAX_LENGTH,
   MAX_SAFE_INTEGER,
-  MAX_SAFE_COMPONENT_LENGTH
+  MAX_SAFE_COMPONENT_LENGTH,
 }
 
 
@@ -8569,7 +8587,7 @@ const rcompareIdentifiers = (a, b) => compareIdentifiers(b, a)
 
 module.exports = {
   compareIdentifiers,
-  rcompareIdentifiers
+  rcompareIdentifiers,
 }
 
 
@@ -8584,9 +8602,9 @@ const opts = ['includePrerelease', 'loose', 'rtl']
 const parseOptions = options =>
   !options ? {}
   : typeof options !== 'object' ? { loose: true }
-  : opts.filter(k => options[k]).reduce((options, k) => {
-    options[k] = true
-    return options
+  : opts.filter(k => options[k]).reduce((o, k) => {
+    o[k] = true
+    return o
   }, {})
 module.exports = parseOptions
 
@@ -8608,7 +8626,7 @@ let R = 0
 
 const createToken = (name, value, isGlobal) => {
   const index = R++
-  debug(index, value)
+  debug(name, index, value)
   t[name] = index
   src[index] = value
   re[index] = new RegExp(value, isGlobal ? 'g' : undefined)
@@ -8776,8 +8794,8 @@ createToken('HYPHENRANGELOOSE', `^\\s*(${src[t.XRANGEPLAINLOOSE]})` +
 // Star ranges basically just allow anything at all.
 createToken('STAR', '(<|>)?=?\\s*\\*')
 // >=0.0.0 is like a star
-createToken('GTE0', '^\\s*>=\\s*0\.0\.0\\s*$')
-createToken('GTE0PRE', '^\\s*>=\\s*0\.0\.0-0\\s*$')
+createToken('GTE0', '^\\s*>=\\s*0\\.0\\.0\\s*$')
+createToken('GTE0PRE', '^\\s*>=\\s*0\\.0\\.0-0\\s*$')
 
 
 /***/ }),
@@ -8933,8 +8951,9 @@ const minVersion = (range, loose) => {
           throw new Error(`Unexpected operation: ${comparator.operator}`)
       }
     })
-    if (setMin && (!minver || gt(minver, setMin)))
+    if (setMin && (!minver || gt(minver, setMin))) {
       minver = setMin
+    }
   }
 
   if (minver && range.test(minver)) {
@@ -8953,7 +8972,7 @@ module.exports = minVersion
 
 const SemVer = __nccwpck_require__(8088)
 const Comparator = __nccwpck_require__(1532)
-const {ANY} = Comparator
+const { ANY } = Comparator
 const Range = __nccwpck_require__(9828)
 const satisfies = __nccwpck_require__(6055)
 const gt = __nccwpck_require__(4123)
@@ -9045,38 +9064,41 @@ const satisfies = __nccwpck_require__(6055)
 const compare = __nccwpck_require__(4309)
 module.exports = (versions, range, options) => {
   const set = []
-  let min = null
+  let first = null
   let prev = null
   const v = versions.sort((a, b) => compare(a, b, options))
   for (const version of v) {
     const included = satisfies(version, range, options)
     if (included) {
       prev = version
-      if (!min)
-        min = version
+      if (!first) {
+        first = version
+      }
     } else {
       if (prev) {
-        set.push([min, prev])
+        set.push([first, prev])
       }
       prev = null
-      min = null
+      first = null
     }
   }
-  if (min)
-    set.push([min, null])
+  if (first) {
+    set.push([first, null])
+  }
 
   const ranges = []
   for (const [min, max] of set) {
-    if (min === max)
+    if (min === max) {
       ranges.push(min)
-    else if (!max && min === v[0])
+    } else if (!max && min === v[0]) {
       ranges.push('*')
-    else if (!max)
+    } else if (!max) {
       ranges.push(`>=${min}`)
-    else if (min === v[0])
+    } else if (min === v[0]) {
       ranges.push(`<=${max}`)
-    else
+    } else {
       ranges.push(`${min} - ${max}`)
+    }
   }
   const simplified = ranges.join(' || ')
   const original = typeof range.raw === 'string' ? range.raw : String(range)
@@ -9090,22 +9112,30 @@ module.exports = (versions, range, options) => {
 /***/ ((module, __unused_webpack_exports, __nccwpck_require__) => {
 
 const Range = __nccwpck_require__(9828)
-const { ANY } = __nccwpck_require__(1532)
+const Comparator = __nccwpck_require__(1532)
+const { ANY } = Comparator
 const satisfies = __nccwpck_require__(6055)
 const compare = __nccwpck_require__(4309)
 
 // Complex range `r1 || r2 || ...` is a subset of `R1 || R2 || ...` iff:
-// - Every simple range `r1, r2, ...` is a subset of some `R1, R2, ...`
+// - Every simple range `r1, r2, ...` is a null set, OR
+// - Every simple range `r1, r2, ...` which is not a null set is a subset of
+//   some `R1, R2, ...`
 //
 // Simple range `c1 c2 ...` is a subset of simple range `C1 C2 ...` iff:
 // - If c is only the ANY comparator
 //   - If C is only the ANY comparator, return true
-//   - Else return false
+//   - Else if in prerelease mode, return false
+//   - else replace c with `[>=0.0.0]`
+// - If C is only the ANY comparator
+//   - if in prerelease mode, return true
+//   - else replace C with `[>=0.0.0]`
 // - Let EQ be the set of = comparators in c
 // - If EQ is more than one, return true (null set)
 // - Let GT be the highest > or >= comparator in c
 // - Let LT be the lowest < or <= comparator in c
 // - If GT and LT, and GT.semver > LT.semver, return true (null set)
+// - If any C is a = range, and GT or LT are set, return false
 // - If EQ
 //   - If GT, and EQ does not satisfy GT, return true (null set)
 //   - If LT, and EQ does not satisfy LT, return true (null set)
@@ -9114,15 +9144,19 @@ const compare = __nccwpck_require__(4309)
 // - If GT
 //   - If GT.semver is lower than any > or >= comp in C, return false
 //   - If GT is >=, and GT.semver does not satisfy every C, return false
+//   - If GT.semver has a prerelease, and not in prerelease mode
+//     - If no C has a prerelease and the GT.semver tuple, return false
 // - If LT
 //   - If LT.semver is greater than any < or <= comp in C, return false
 //   - If LT is <=, and LT.semver does not satisfy every C, return false
-// - If any C is a = range, and GT or LT are set, return false
+//   - If GT.semver has a prerelease, and not in prerelease mode
+//     - If no C has a prerelease and the LT.semver tuple, return false
 // - Else return true
 
-const subset = (sub, dom, options) => {
-  if (sub === dom)
+const subset = (sub, dom, options = {}) => {
+  if (sub === dom) {
     return true
+  }
 
   sub = new Range(sub, options)
   dom = new Range(dom, options)
@@ -9132,60 +9166,84 @@ const subset = (sub, dom, options) => {
     for (const simpleDom of dom.set) {
       const isSub = simpleSubset(simpleSub, simpleDom, options)
       sawNonNull = sawNonNull || isSub !== null
-      if (isSub)
+      if (isSub) {
         continue OUTER
+      }
     }
     // the null set is a subset of everything, but null simple ranges in
     // a complex range should be ignored.  so if we saw a non-null range,
     // then we know this isn't a subset, but if EVERY simple range was null,
     // then it is a subset.
-    if (sawNonNull)
+    if (sawNonNull) {
       return false
+    }
   }
   return true
 }
 
 const simpleSubset = (sub, dom, options) => {
-  if (sub === dom)
+  if (sub === dom) {
     return true
+  }
 
-  if (sub.length === 1 && sub[0].semver === ANY)
-    return dom.length === 1 && dom[0].semver === ANY
+  if (sub.length === 1 && sub[0].semver === ANY) {
+    if (dom.length === 1 && dom[0].semver === ANY) {
+      return true
+    } else if (options.includePrerelease) {
+      sub = [new Comparator('>=0.0.0-0')]
+    } else {
+      sub = [new Comparator('>=0.0.0')]
+    }
+  }
+
+  if (dom.length === 1 && dom[0].semver === ANY) {
+    if (options.includePrerelease) {
+      return true
+    } else {
+      dom = [new Comparator('>=0.0.0')]
+    }
+  }
 
   const eqSet = new Set()
   let gt, lt
   for (const c of sub) {
-    if (c.operator === '>' || c.operator === '>=')
+    if (c.operator === '>' || c.operator === '>=') {
       gt = higherGT(gt, c, options)
-    else if (c.operator === '<' || c.operator === '<=')
+    } else if (c.operator === '<' || c.operator === '<=') {
       lt = lowerLT(lt, c, options)
-    else
+    } else {
       eqSet.add(c.semver)
+    }
   }
 
-  if (eqSet.size > 1)
+  if (eqSet.size > 1) {
     return null
+  }
 
   let gtltComp
   if (gt && lt) {
     gtltComp = compare(gt.semver, lt.semver, options)
-    if (gtltComp > 0)
+    if (gtltComp > 0) {
       return null
-    else if (gtltComp === 0 && (gt.operator !== '>=' || lt.operator !== '<='))
+    } else if (gtltComp === 0 && (gt.operator !== '>=' || lt.operator !== '<=')) {
       return null
+    }
   }
 
   // will iterate one or zero times
   for (const eq of eqSet) {
-    if (gt && !satisfies(eq, String(gt), options))
+    if (gt && !satisfies(eq, String(gt), options)) {
       return null
+    }
 
-    if (lt && !satisfies(eq, String(lt), options))
+    if (lt && !satisfies(eq, String(lt), options)) {
       return null
+    }
 
     for (const c of dom) {
-      if (!satisfies(eq, String(c), options))
+      if (!satisfies(eq, String(c), options)) {
         return false
+      }
     }
 
     return true
@@ -9193,45 +9251,90 @@ const simpleSubset = (sub, dom, options) => {
 
   let higher, lower
   let hasDomLT, hasDomGT
+  // if the subset has a prerelease, we need a comparator in the superset
+  // with the same tuple and a prerelease, or it's not a subset
+  let needDomLTPre = lt &&
+    !options.includePrerelease &&
+    lt.semver.prerelease.length ? lt.semver : false
+  let needDomGTPre = gt &&
+    !options.includePrerelease &&
+    gt.semver.prerelease.length ? gt.semver : false
+  // exception: <1.2.3-0 is the same as <1.2.3
+  if (needDomLTPre && needDomLTPre.prerelease.length === 1 &&
+      lt.operator === '<' && needDomLTPre.prerelease[0] === 0) {
+    needDomLTPre = false
+  }
+
   for (const c of dom) {
     hasDomGT = hasDomGT || c.operator === '>' || c.operator === '>='
     hasDomLT = hasDomLT || c.operator === '<' || c.operator === '<='
     if (gt) {
+      if (needDomGTPre) {
+        if (c.semver.prerelease && c.semver.prerelease.length &&
+            c.semver.major === needDomGTPre.major &&
+            c.semver.minor === needDomGTPre.minor &&
+            c.semver.patch === needDomGTPre.patch) {
+          needDomGTPre = false
+        }
+      }
       if (c.operator === '>' || c.operator === '>=') {
         higher = higherGT(gt, c, options)
-        if (higher === c && higher !== gt)
+        if (higher === c && higher !== gt) {
           return false
-      } else if (gt.operator === '>=' && !satisfies(gt.semver, String(c), options))
+        }
+      } else if (gt.operator === '>=' && !satisfies(gt.semver, String(c), options)) {
         return false
+      }
     }
     if (lt) {
+      if (needDomLTPre) {
+        if (c.semver.prerelease && c.semver.prerelease.length &&
+            c.semver.major === needDomLTPre.major &&
+            c.semver.minor === needDomLTPre.minor &&
+            c.semver.patch === needDomLTPre.patch) {
+          needDomLTPre = false
+        }
+      }
       if (c.operator === '<' || c.operator === '<=') {
         lower = lowerLT(lt, c, options)
-        if (lower === c && lower !== lt)
+        if (lower === c && lower !== lt) {
           return false
-      } else if (lt.operator === '<=' && !satisfies(lt.semver, String(c), options))
+        }
+      } else if (lt.operator === '<=' && !satisfies(lt.semver, String(c), options)) {
         return false
+      }
     }
-    if (!c.operator && (lt || gt) && gtltComp !== 0)
+    if (!c.operator && (lt || gt) && gtltComp !== 0) {
       return false
+    }
   }
 
   // if there was a < or >, and nothing in the dom, then must be false
   // UNLESS it was limited by another range in the other direction.
   // Eg, >1.0.0 <1.0.1 is still a subset of <2.0.0
-  if (gt && hasDomLT && !lt && gtltComp !== 0)
+  if (gt && hasDomLT && !lt && gtltComp !== 0) {
     return false
+  }
 
-  if (lt && hasDomGT && !gt && gtltComp !== 0)
+  if (lt && hasDomGT && !gt && gtltComp !== 0) {
     return false
+  }
+
+  // we needed a prerelease range in a specific tuple, but didn't get one
+  // then this isn't a subset.  eg >=1.2.3-pre is not a subset of >=1.0.0,
+  // because it includes prereleases in the 1.2.3 tuple
+  if (needDomGTPre || needDomLTPre) {
+    return false
+  }
 
   return true
 }
 
 // >=1.2.3 is lower than >1.2.3
 const higherGT = (a, b, options) => {
-  if (!a)
+  if (!a) {
     return b
+  }
   const comp = compare(a.semver, b.semver, options)
   return comp > 0 ? a
     : comp < 0 ? b
@@ -9241,8 +9344,9 @@ const higherGT = (a, b, options) => {
 
 // <=1.2.3 is higher than <1.2.3
 const lowerLT = (a, b, options) => {
-  if (!a)
+  if (!a) {
     return b
+  }
   const comp = compare(a.semver, b.semver, options)
   return comp < 0 ? a
     : comp > 0 ? b
