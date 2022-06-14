@@ -32,7 +32,7 @@ async function getLatestTag(octokit, boolAll = true) {
     // strip all non version tags
     const allVTags = data
         .filter(tag => semver.clean(tag.name) !== null);
-    
+
     allVTags
         .sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
 
@@ -269,9 +269,9 @@ async function action() {
         core.info("commits in branch");
 
         const msgLevel = await checkMessages(
-            octokit, 
-            branchInfo.object.sha, 
-            latestMainTag ? latestMainTag.commit.sha : "", // terminate at the previous tag 
+            octokit,
+            branchInfo.object.sha,
+            latestMainTag ? latestMainTag.commit.sha : "", // terminate at the previous tag
             issLabs
         );
         // core.info(`commit messages suggest ${msgLevel} upgrade`);
