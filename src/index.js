@@ -225,7 +225,6 @@ async function action() {
         core.setOutput("new-tag", customTag);
     }
     else {
-
         core.info(`maching refs: ${ sha }`);
 
         const latestTag = await getLatestTag(octokit);
@@ -239,7 +238,11 @@ async function action() {
         core.setOutput("tag", versionTag);
 
         if (latestTag && latestTag.commit.sha === sha) {
-            throw new Error("no new commits, avoid tagging");
+            core.info("no new commits, avoid tagging");
+
+            // in this case the new and the old tag are the same.
+            core.setOutput("new-tag", versionTag);
+            return;
         }
 
         core.info(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
