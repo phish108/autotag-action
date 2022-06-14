@@ -54,7 +54,7 @@ async function getLatestTag(octokit, boolAll = true) {
 }
 
 async function loadBranch(octokit, branch) {
-    const result = await octokit.git.listMatchingRefs({
+    const result = await octokit.rest.git.listMatchingRefs({
         owner,
         repo,
         ref: `heads/${branch}`
@@ -71,7 +71,7 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
 
     let releaseBump = "none";
 
-    const result = await octokit.repos.listCommits({
+    const result = await octokit.rest.repos.listCommits({
         owner,
         repo,
         sha
@@ -132,7 +132,7 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
 
                 core.info(`check issue ${issue_number} for minor labels`);
 
-                const { data } = await octokit.issues.get({
+                const { data } = await octokit.rest.issues.get({
                     owner,
                     repo,
                     issue_number
@@ -311,7 +311,7 @@ async function action() {
 
     const ref = `refs/tags/${ customTag ? customTag : newTag }`;
 
-    await octokit.git.createRef({
+    await octokit.rest.git.createRef({
         owner,
         repo,
         ref,
