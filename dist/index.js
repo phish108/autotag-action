@@ -12511,20 +12511,72 @@ module.exports = JSON.parse('[[[0,44],"disallowed_STD3_valid"],[[45,46],"valid"]
 /******/ 	}
 /******/ 	
 /************************************************************************/
+/******/ 	/* webpack/runtime/compat get default export */
+/******/ 	(() => {
+/******/ 		// getDefaultExport function for compatibility with non-harmony modules
+/******/ 		__nccwpck_require__.n = (module) => {
+/******/ 			var getter = module && module.__esModule ?
+/******/ 				() => (module['default']) :
+/******/ 				() => (module);
+/******/ 			__nccwpck_require__.d(getter, { a: getter });
+/******/ 			return getter;
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/define property getters */
+/******/ 	(() => {
+/******/ 		// define getter functions for harmony exports
+/******/ 		__nccwpck_require__.d = (exports, definition) => {
+/******/ 			for(var key in definition) {
+/******/ 				if(__nccwpck_require__.o(definition, key) && !__nccwpck_require__.o(exports, key)) {
+/******/ 					Object.defineProperty(exports, key, { enumerable: true, get: definition[key] });
+/******/ 				}
+/******/ 			}
+/******/ 		};
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/hasOwnProperty shorthand */
+/******/ 	(() => {
+/******/ 		__nccwpck_require__.o = (obj, prop) => (Object.prototype.hasOwnProperty.call(obj, prop))
+/******/ 	})();
+/******/ 	
+/******/ 	/* webpack/runtime/make namespace object */
+/******/ 	(() => {
+/******/ 		// define __esModule on exports
+/******/ 		__nccwpck_require__.r = (exports) => {
+/******/ 			if(typeof Symbol !== 'undefined' && Symbol.toStringTag) {
+/******/ 				Object.defineProperty(exports, Symbol.toStringTag, { value: 'Module' });
+/******/ 			}
+/******/ 			Object.defineProperty(exports, '__esModule', { value: true });
+/******/ 		};
+/******/ 	})();
+/******/ 	
 /******/ 	/* webpack/runtime/compat */
 /******/ 	
 /******/ 	if (typeof __nccwpck_require__ !== 'undefined') __nccwpck_require__.ab = __dirname + "/";
 /******/ 	
 /************************************************************************/
 var __webpack_exports__ = {};
-// This entry need to be wrapped in an IIFE because it need to be isolated against other modules in the chunk.
+// This entry need to be wrapped in an IIFE because it need to be in strict mode.
 (() => {
-const core   = __nccwpck_require__(2186);
-const github = __nccwpck_require__(5438);
-const semver = __nccwpck_require__(1383);
+"use strict";
+__nccwpck_require__.r(__webpack_exports__);
+/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0__ = __nccwpck_require__(2186);
+/* harmony import */ var _actions_core__WEBPACK_IMPORTED_MODULE_0___default = /*#__PURE__*/__nccwpck_require__.n(_actions_core__WEBPACK_IMPORTED_MODULE_0__);
+/* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_1__ = __nccwpck_require__(5438);
+/* harmony import */ var _actions_github__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__nccwpck_require__.n(_actions_github__WEBPACK_IMPORTED_MODULE_1__);
+/* harmony import */ var semver__WEBPACK_IMPORTED_MODULE_2__ = __nccwpck_require__(1383);
+/* harmony import */ var semver__WEBPACK_IMPORTED_MODULE_2___default = /*#__PURE__*/__nccwpck_require__.n(semver__WEBPACK_IMPORTED_MODULE_2__);
 
-const owner = github.context.payload.repository.owner.login;
-const repo = github.context.payload.repository.name;
+
+
+
+// const core   = require("@actions/core");
+// const github = require("@actions/github");
+// const semver = require("semver");
+
+const owner = _actions_github__WEBPACK_IMPORTED_MODULE_1__.github.context.payload.repository.owner.login;
+const repo = _actions_github__WEBPACK_IMPORTED_MODULE_1__.github.context.payload.repository.name;
 
 async function checkTag(octokit, tagName) {
     const { data } = await octokit.repos.listTags({
@@ -12552,10 +12604,10 @@ async function getLatestTag(octokit, boolAll = true) {
     // ensure the highest version number is the last element
     // strip all non version tags
     const allVTags = data
-        .filter(tag => semver.clean(tag.name) !== null);
+        .filter(tag => semver__WEBPACK_IMPORTED_MODULE_2__.semver.clean(tag.name) !== null);
 
     allVTags
-        .sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
+        .sort((a, b) => semver__WEBPACK_IMPORTED_MODULE_2__.semver.compare(semver__WEBPACK_IMPORTED_MODULE_2__.semver.clean(a.name), semver__WEBPACK_IMPORTED_MODULE_2__.semver.clean(b.name)));
 
     if (boolAll) {
         return allVTags.pop();
@@ -12564,7 +12616,7 @@ async function getLatestTag(octokit, boolAll = true) {
     // filter prereleases
     // core.info("filter only main releases");
 
-    const filtered = allVTags.filter((b) => semver.prerelease(b.name) === null);
+    const filtered = allVTags.filter((b) => semver__WEBPACK_IMPORTED_MODULE_2__.semver.prerelease(b.name) === null);
     const result = filtered.pop();
 
     return result;
@@ -12647,7 +12699,7 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
             if (id && Number(id[1]) > 0) {
                 const issue_number = Number(id[1]);
 
-                core.info(`check issue ${issue_number} for minor labels`);
+                _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`check issue ${issue_number} for minor labels`);
 
                 const { data } = await octokit.issues.get({
                     owner,
@@ -12661,7 +12713,7 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
                     for (const label of data.labels) {
 
                         if (issueTags.indexOf(label.name) >= 0) {
-                            core.info("found enhancement issue");
+                            _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info("found enhancement issue");
                             releaseBump = "minor";
                             break;
                         }
@@ -12689,28 +12741,28 @@ function isReleaseBranch(branchName, branchList) {
 }
 
 async function action() {
-    core.info(`run for ${ owner } / ${ repo }`);
+    _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`run for ${ owner } / ${ repo }`);
 
     // core.info(`payload ${JSON.stringify(github.context.payload.repository, undefined, 2)}`);
 
     // prepare octokit
-    const token = core.getInput("github-token", {required: true});
-    const octokit = new github.getOctokit(token);
+    const token = _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.getInput("github-token", {required: true});
+    const octokit = new _actions_github__WEBPACK_IMPORTED_MODULE_1__.github.getOctokit(token);
 
     // load inputs
     // const customTag     = core.getInput('custom-tag');
-    const dryRun        = core.getInput("dry-run").toLowerCase();
-    const level         = core.getInput("bump");
-    const forceBranch   = core.getInput("branch");
-    const releaseBranch = core.getInput("release-branch");
-    const withV         = core.getInput("with-v").toLowerCase() === "false" ? "" : "v";
-    const customTag     = core.getInput("tag");
-    const issueLabels   = core.getInput("issue-labels");
+    const dryRun        = _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.getInput("dry-run").toLowerCase();
+    const level         = _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.getInput("bump");
+    const forceBranch   = _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.getInput("branch");
+    const releaseBranch = _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.getInput("release-branch");
+    const withV         = _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.getInput("with-v").toLowerCase() === "false" ? "" : "v";
+    const customTag     = _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.getInput("tag");
+    const issueLabels   = _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.getInput("issue-labels");
 
     let branchInfo, nextVersion;
 
     if (forceBranch) {
-        core.info(`check forced branch ${forceBranch}`);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`check forced branch ${forceBranch}`);
 
         branchInfo = await loadBranch(octokit, forceBranch);
 
@@ -12718,13 +12770,13 @@ async function action() {
             throw new Error("unknown branch provided");
         }
 
-        core.info("branch confirmed, continue");
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info("branch confirmed, continue");
     }
 
     if (!branchInfo) {
-        const activeBranch = github.context.ref.replace(/refs\/heads\//, "");
+        const activeBranch = _actions_github__WEBPACK_IMPORTED_MODULE_1__.github.context.ref.replace(/refs\/heads\//, "");
 
-        core.info(`load the history of activity-branch ${ activeBranch } from context ref ${ github.context.ref }`);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`load the history of activity-branch ${ activeBranch } from context ref ${ _actions_github__WEBPACK_IMPORTED_MODULE_1__.github.context.ref }`);
         branchInfo  = await loadBranch(octokit, activeBranch);
 
         if (!branchInfo) {
@@ -12736,47 +12788,47 @@ async function action() {
     const sha        = branchInfo.object.sha;
     const branchName = branchInfo.ref.split("/").pop();
 
-    core.info(`active branch name is ${ branchName }`);
+    _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`active branch name is ${ branchName }`);
 
     if (customTag){
         if (checkTag(octokit, customTag)) {
             throw new Error(`tag already exists ${customTag}`);
         }
 
-        core.setOutput("new-tag", customTag);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.setOutput("new-tag", customTag);
     }
     else {
-        core.info(`maching refs: ${ sha }`);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`maching refs: ${ sha }`);
 
         const latestTag = await getLatestTag(octokit);
         const latestMainTag = await getLatestTag(octokit, false);
 
-        core.info(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
-        core.info(`the previous main tag of the repository ${ JSON.stringify(latestMainTag, undefined, 2) }`);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`the previous main tag of the repository ${ JSON.stringify(latestMainTag, undefined, 2) }`);
 
         const versionTag = latestTag && latestTag.name ? latestTag.name : "0.0.0";
 
-        core.setOutput("tag", versionTag);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.setOutput("tag", versionTag);
 
         if (latestTag && latestTag.commit.sha === sha) {
-            core.info("no new commits, avoid tagging");
+            _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info("no new commits, avoid tagging");
 
             // in this case the new and the old tag are the same.
-            core.setOutput("new-tag", versionTag);
+            _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.setOutput("new-tag", versionTag);
             return;
         }
 
-        core.info(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
 
-        const version   = semver.clean(versionTag);
+        const version   = semver__WEBPACK_IMPORTED_MODULE_2__.semver.clean(versionTag);
 
-        nextVersion = semver.inc(
+        nextVersion = semver__WEBPACK_IMPORTED_MODULE_2__.semver.inc(
             version,
             "prerelease",
             branchName
         );
 
-        core.info(`default to prerelease version ${ nextVersion }`);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`default to prerelease version ${ nextVersion }`);
 
         let issLabs = ["enhancement"];
 
@@ -12790,7 +12842,7 @@ async function action() {
 
         // check if commits and issues point to a diffent release level
         // This filters hash tags for major, minor, patch and wip commit messages.
-        core.info("commits in branch");
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info("commits in branch");
 
         const msgLevel = await checkMessages(
             octokit,
@@ -12801,30 +12853,30 @@ async function action() {
         // core.info(`commit messages suggest ${msgLevel} upgrade`);
 
         if (isReleaseBranch(branchName, releaseBranch)) {
-            core.info(`${ branchName } is a release branch`);
+            _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`${ branchName } is a release branch`);
 
             if (msgLevel === "none") {
-                nextVersion = semver.inc(version, level);
+                nextVersion = semver__WEBPACK_IMPORTED_MODULE_2__.semver.inc(version, level);
             }
             else {
-                core.info(`commit messages force bump level to ${msgLevel}`);
-                nextVersion = semver.inc(version, msgLevel);
+                _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`commit messages force bump level to ${msgLevel}`);
+                nextVersion = semver__WEBPACK_IMPORTED_MODULE_2__.semver.inc(version, msgLevel);
             }
         }
 
-        core.info( `bump tag ${ nextVersion }` );
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info( `bump tag ${ nextVersion }` );
 
-        core.setOutput("new-tag", nextVersion);
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.setOutput("new-tag", nextVersion);
     }
 
     if (dryRun === "true") {
-        core.info("dry run, don't perform tagging");
+        _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info("dry run, don't perform tagging");
         return;
     }
 
     const newTag = `${ withV }${ nextVersion }`;
 
-    core.info(`really add tag ${ customTag ? customTag : newTag }`);
+    _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info(`really add tag ${ customTag ? customTag : newTag }`);
 
     const ref = `refs/tags/${ customTag ? customTag : newTag }`;
 
@@ -12837,8 +12889,8 @@ async function action() {
 }
 
 action()
-    .then(() => core.info("success"))
-    .catch(error => core.setFailed(error.message));
+    .then(() => _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.info("success"))
+    .catch(error => _actions_core__WEBPACK_IMPORTED_MODULE_0__.core.setFailed(error.message));
 
 })();
 
