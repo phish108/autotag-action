@@ -32,7 +32,7 @@ async function getLatestTag(octokit, boolAll = true) {
     // strip all non version tags
     const allVTags = data
         .filter(tag => semver.clean(tag.name) !== null);
-
+    
     allVTags
         .sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
 
@@ -234,7 +234,7 @@ async function action() {
         core.info(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
         core.info(`the previous main tag of the repository ${ JSON.stringify(latestMainTag, undefined, 2) }`);
 
-        const versionTag = latestTag ? latestTag.name : "0.0.0";
+        const versionTag = latestTag && latestTag.name ? latestTag.name : "0.0.0";
 
         core.setOutput("tag", versionTag);
 
@@ -264,9 +264,16 @@ async function action() {
             }
         }
 
-        // check if commits and issues point to a diffent release
+        // check if commits and issues point to a diffent release level
+        // This filters hash tags for major, minor, patch and wip commit messages.
         core.info("commits in branch");
-        const msgLevel = await checkMessages(octokit, branchInfo.object.sha, latestMainTag.commit.sha,  issLabs);
+
+        const msgLevel = await checkMessages(
+            octokit, 
+            branchInfo.object.sha, 
+            latestMainTag ? latestMainTag.commit.sha : "", // terminate at the previous tag 
+            issLabs
+        );
         // core.info(`commit messages suggest ${msgLevel} upgrade`);
 
         if (isReleaseBranch(branchName, releaseBranch)) {
