@@ -1,6 +1,6 @@
-import { core } from "@actions/core";
-import { github } from "@actions/github";
-import { semver } from "semver";
+import * as core from '@actions/core'
+import * as github from '@actions/github'
+import * as semver from "semver";
 
 // const core   = require("@actions/core");
 // const github = require("@actions/github");
