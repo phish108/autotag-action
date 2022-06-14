@@ -17,7 +17,7 @@ jobs:
     - uses: actions/checkout@v2
     - uses: actions/setup-node@v1
       with:
-        node-version: 14
+        node-version: 18
     - run: npm ci
     - run: npm run lint
 
@@ -32,10 +32,10 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
 
-    - name: Use Node.js 14
+    - name: Use Node.js 18
       uses: actions/setup-node@v1
       with:
-        node-version: 14
+        node-version: 18
     
     - id: tagger
       uses: phish108/autotag-action@1.1.26
@@ -94,10 +94,10 @@ jobs:
         git config --local user.email "action@github.com"
         git config --local user.name "GitHub Action"
 
-    - name: Use Node.js 14
+    - name: Use Node.js 18
       uses: actions/setup-node@v1
       with:
-        node-version: 14
+        node-version: 18
     
     - id: tagger
       uses: phish108/autotag-action@1.1.26
