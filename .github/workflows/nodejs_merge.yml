@@ -30,7 +30,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: automerge
-      uses: "pascalgn/automerge-action@v0.13.1"
+      uses: "pascalgn/automerge-action@v0.15.3"
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         MERGE_LABELS: ""
@@ -42,7 +42,7 @@ jobs:
 
     steps:
     - id: tagger
-      uses: phish108/autotag-action@1.1.26
+      uses: phish108/autotag-action@1.1.37
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         dry-run: 'TRUE'
