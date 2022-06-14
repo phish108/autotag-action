@@ -110,7 +110,7 @@ jobs:
     
     - id: tagger
       if: ${{ steps.release.outputs.proceed == 'true' }}
-      uses: phish108/autotag-action@1.1.29
+      uses: phish108/autotag-action@1.1.37
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         branch: master
