@@ -31,7 +31,7 @@ jobs:
     - uses: actions/checkout@v2
     
     - name: automerge
-      uses: "pascalgn/automerge-action@v0.15.3"
+      uses: "pascalgn/automerge-action@v0.13.1"
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         MERGE_LABELS: ""
@@ -43,7 +43,7 @@ jobs:
 
     steps:
     - id: tagger
-      uses: phish108/autotag-action@1.1.37
+      uses: phish108/autotag-action@1.1.47
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         dry-run: 'TRUE'
@@ -110,7 +110,7 @@ jobs:
     
     - id: tagger
       if: ${{ steps.release.outputs.proceed == 'true' }}
-      uses: phish108/autotag-action@1.1.37
+      uses: phish108/autotag-action@1.1.47
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         branch: master
@@ -133,7 +133,7 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
     
-    - uses: phish108/autotag-action@1.1.29
+    - uses: phish108/autotag-action@1.1.47
       if: ${{ steps.release.outputs.proceed == 'true' }}
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
