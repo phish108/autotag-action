@@ -126,7 +126,7 @@ jobs:
       env:
         GITSHA: ${{ github.sha }}
 
-    # very risky ... 
+    # very risky ... because of using the master branch
     - name: Push changes
       if: ${{ steps.release.outputs.proceed == 'true' }}
       uses: ad-m/github-push-action@master
