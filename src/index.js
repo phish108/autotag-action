@@ -45,6 +45,35 @@ function getParameters() {
     return retval;
 }
 
+function getDateStyle(style) {
+    if (! style.match(/date/) ) {
+        return "";
+    }
+
+    const now = new Date();
+
+    if (style.match(/iso/)) {
+        if (style.match(/datetime/)) {
+            return now.toISOString().replace(/:/g,"-").replace(/-\d\d\.\d+Z$/, "");
+        }
+
+        return now.toISOString().replace(/:/g,"-").replace(/T.+$/, "");
+    }
+
+    let seperator = "";
+    let date = [now.getFullYear(), now.getMonth(), now.getDay()];
+
+    if (style.match(/dot/)) {
+        seperator = ".";
+    } 
+ 
+    if (style.match(/datetime/)) {
+        date = date.concat([now.getHour(), now.getMinute()]);
+    }
+
+    return date.join(seperator);
+}
+
 async function checkTag(octokit, tagName) {
     const { data } = await octokit.rest.repos.listTags({
         owner,
