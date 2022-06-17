@@ -9,7 +9,41 @@ const semver = require("semver");
 const owner = github.context.payload.repository.owner.login;
 const repo = github.context.payload.repository.name;
 
+function getParameters() {
+    const retval = {},
 
+    Parameters = [
+        "branch", 
+        "bump", 
+        "dry-run", 
+        "github-token", 
+        "issue-labels" , 
+        "release-branch", 
+        "style", 
+        "tag", 
+        "with-v"
+    ],
+
+    Styles = [
+        "semver",
+        "date",
+        "datetime",
+        "dotdate",
+        "dotdatetime",
+        "isodate",
+        "isodatetime"
+    ];
+
+    Parameters.forEach((pname) => retval[pname] = core.getInput(pname));
+
+    // fix parameters
+    retval["dryRun"] = retval["dry-run"].toLowerCase() === "false";
+    retval["withV"]  = retval["with-v"].toLowerCase() === false ? "" : "v";
+
+    retval["style"] = Styles.includes(retval["style"]) ? retval["style"] :  "semver";
+
+    return retval;
+}
 
 async function checkTag(octokit, tagName) {
     const { data } = await octokit.rest.repos.listTags({
@@ -173,15 +207,10 @@ function isReleaseBranch(branchName, branchList) {
     return false;
 }
 
-function getParameters() {
-    const parameters = ["branch", "bump", "dry-run", "github-token", "issue-labels" , "release-branch", "style", "tag", "with-v"]
-
-    const token = core.getInput("github-token", {required: true});
-
-}
-
 async function action() {
     core.info(`run for ${ owner } / ${ repo }`);
+
+    const params = getParameters(); 
 
     // core.info(`payload ${JSON.stringify(github.context.payload.repository, undefined, 2)}`);
 
