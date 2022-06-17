@@ -9,6 +9,8 @@ const semver = require("semver");
 const owner = github.context.payload.repository.owner.login;
 const repo = github.context.payload.repository.name;
 
+
+
 async function checkTag(octokit, tagName) {
     const { data } = await octokit.rest.repos.listTags({
         owner,
@@ -171,13 +173,20 @@ function isReleaseBranch(branchName, branchList) {
     return false;
 }
 
+function getParameters() {
+    const parameters = ["branch", "bump", "dry-run", "github-token", "issue-labels" , "release-branch", "style", "tag", "with-v"]
+
+    const token = core.getInput("github-token", {required: true});
+
+}
+
 async function action() {
     core.info(`run for ${ owner } / ${ repo }`);
 
     // core.info(`payload ${JSON.stringify(github.context.payload.repository, undefined, 2)}`);
 
     // prepare octokit
-    const token = core.getInput("github-token", {required: true});
+   
     const octokit = new github.getOctokit(token);
 
     // load inputs

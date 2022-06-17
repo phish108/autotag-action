@@ -7,7 +7,7 @@ branding:
 inputs:
   github-token:  # id of input
     default: ${{ github.token }}
-    required: false
+    required: false # not required, so default can do its magic
     description: 'the GH token to connect to github from the action'
   dry-run: 
     description: "check if the action would succeed"
@@ -25,6 +25,14 @@ inputs:
     description: "use version prefix"
     required: false
     default: "FALSE"
+  style: 
+    description: "versioning style"
+    required: false
+    default: "semver"
+  tag: 
+    description: "use custom tag"
+    required: false
+    default: ""
   release-branch: 
     description: "provide the names from which branches to release"
     required: false
