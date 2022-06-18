@@ -41,7 +41,7 @@ function getParameters() {
     };
 
     Parameters.forEach((pname) => retval[pname] = core.getInput(pname));
-    Object.keys(Remap).map((pname) => retval[Remap[pname]] = retval[pname]);
+    Object.keys(Remap).forEach((pname) => retval[Remap[pname]] = retval[pname]);
 
     // fix complex parameters
     retval["dryRun"] = retval["dry-run"].toLowerCase() !== "false";
@@ -56,6 +56,11 @@ function getParameters() {
     if (!retval.issueLabels.length) {
         retval.issueLabels = ["enhancement"];
     }
+
+    // set the date tag as forced tag, if set by style
+    const dateTag = getDateStyle(retval.style);
+
+    retval.tag = dateTag === "" ? retval.tag : dateTag;
 
     return retval;
 }
@@ -89,52 +94,34 @@ function getDateStyle(style) {
     return date.join(seperator);
 }
 
-async function checkTag(octokit, context, tagName) {
-    const { data } = await octokit.rest.repos.listTags({
-        owner: context.owner,
-        repo: context.repo
-    });
+async function checkTag(tagList, tagName) {
+    const result = tagList.filter(tag => tag.name === tagName);
 
-    if (data) {
-        const result = data.filter(tag => tag.name === tagName);
-
-        if (result.length) {
-            return true;
-        }
-    }
-
-    return false;
+    return result.length > 0;
 }
 
-async function getLatestTag(octokit, context, boolAll = true) {
-    const { data } = await octokit.rest.repos.listTags({
+async function getAllTags(context) {
+    const { data } = await context.octokit.rest.repos.listTags({
         owner: context.owner,
         repo: context.repo
     });
 
-    // ensure the highest version number is the last element
-    // strip all non version tags
     const allVTags = data
-        .filter(tag => semver.clean(tag.name) !== null);
+        .map(tag => tag.name = semver.clean(tag.name))
+        .filter(tag => tag.name !== null)
+        .sort((a,b) => semver.compare(a.name, b.name));
 
-    allVTags
-        .sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
+    // FIXME: filter tags only relevant for the current branch (Issue 155)
 
-    if (boolAll) {
-        return allVTags.pop();
-    }
-
-    // filter prereleases
-    // core.info("filter only main releases");
-
-    const filtered = allVTags.filter((b) => semver.prerelease(b.name) === null);
-    const result = filtered.pop();
-
-    return result;
+    return allVTags;
 }
 
-async function loadBranch(octokit, context, branch) {
-    const result = await octokit.rest.git.listMatchingRefs({
+function dropPreReleaseTags(tagList) {
+    return tagList.filter((tag) => semver.prerelease(tag.name) === null);
+}
+
+async function loadBranch(context, branch) {
+    const result = await context.octokit.rest.git.listMatchingRefs({
         owner: context.owner,
         repo: context.repo,
         ref: `heads/${branch}`
@@ -144,18 +131,51 @@ async function loadBranch(octokit, context, branch) {
     return result.data.shift();
 }
 
-// FIXME this is messed up!
-async function checkMessages(octokit, parameters, context, tagSha) { // tagsha should be terminationSha
-    const issueTags = parameters.issueLabels;
-
-    // core.info(`load commits since ${sha}`);
-
-    let releaseBump = "patch";
-
-    const result = await octokit.rest.repos.listCommits({
+async function getIssueLabel(context, issue_number) {
+    const { data } = await context.octokit.rest.issues.get({
         owner: context.owner,
         repo: context.repo,
-        sha: context.sha
+        issue_number
+    });
+
+    return data ? data.labels : [];
+}
+
+async function messageToBumpLevel(context, message) {
+    const wip   = new RegExp(/#wip\b/);
+    const major = new RegExp(/#major\b/);
+    const minor = new RegExp(/#minor\b/);
+    const issue = new RegExp(/fix(?:es)? #(\d+)\b/);
+
+    if (wip.test(message)) {
+        // this will stop the tagging.
+        return "none";
+    }
+    if (major.test(message)) {
+        return "major";
+    }
+    if (minor.test(message)) {
+        return "minor";
+    }
+
+    const id = issue.exec(message);
+
+    if (id && Number(id[1]) > 0) {
+        return id[1];
+    }
+
+    return "patch";
+}
+
+// tagSha refers to the previous tagged commit
+async function checkMessages(parameters, context, tagSha) {
+    const issueLabels = parameters.issueLabels;
+
+    // core.info(`load commits since ${sha}`);
+    const result = await context.octokit.rest.repos.listCommits({
+        owner: context.owner,
+        repo: context.repo,
+        sha: tagSha
     });
 
     if (!(result && result.data)) {
@@ -163,83 +183,38 @@ async function checkMessages(octokit, parameters, context, tagSha) { // tagsha s
         return "none";
     }
 
-    const wip   = new RegExp("#wip\\b");
-    const major = new RegExp("#major\\b");
-    const minor = new RegExp("#minor\\b");
-    const patch = new RegExp("#patch\\b");
+    const levels = result.data
+        .map((commit) => messageToBumpLevel(commit.message));
 
-    const fix   = new RegExp("fix(?:es)? #\\d+");
-    const matcher = new RegExp(/fix(?:es)? #(\d+)\b/);
-
-    for (const commit of result.data) {
-        // core.info(commit.message);
-        const message = commit.commit.message;
-
-        if (commit.sha === tagSha) {
-            break;
-        }
-        // core.info(`commit is : "${JSON.stringify(commit.commit, undefined, 2)}"`);
-        // core.info(`message is : "${message}" on ${commit.commit.committer.date} (${commit.sha})`);
-
-        if (wip.test(message)) {
-            // core.info("found wip message, skip");
-            continue;
-        }
-
-        if (major.test(message)) {
-            // core.info("found major tag, stop");
-            return "major";
-        }
-
-        if (minor.test(message)) {
-            // core.info("found minor tag");
-
-            releaseBump = "minor";
-            continue;
-        }
-
-        if (releaseBump !== "minor" && patch.test(message)) {
-            // core.info("found patch tag");
-            releaseBump = "patch";
-            continue;
-        }
-
-        if (releaseBump !== "minor" && fix.test(message)) {
-            // core.info("found a fix message, check issue for enhancements");
-
-            const id = matcher.exec(message);
-
-            if (id && Number(id[1]) > 0) {
-                const issue_number = Number(id[1]);
-
-                core.info(`check issue ${issue_number} for minor labels`);
-
-                const { data } = await octokit.rest.issues.get({
-                    owner: context.owner,
-                    repo: context.repo,
-                    issue_number
-                });
-
-                if (data) {
-                    releaseBump = "patch";
-
-                    for (const label of data.labels) {
-
-                        if (issueTags.indexOf(label.name) >= 0) {
-                            core.info("found enhancement issue");
-                            releaseBump = "minor";
-                            break;
-                        }
-                    }
-                }
-            }
-
-            // continue;
-        }
-        // core.info("no info message");
+    if (levels.includes("major")) {
+        return "major";
+    }
+    if (levels.includes("minor")) {
+        return "minor";
     }
 
-    return releaseBump;
+    const testlevels = ["major", "minor", "patch"];
+    const issues = levels
+        .filter(bl => !testlevels.includes(bl));
+
+    if (issues.length) {
+        for (const issue of issues)  {
+            const label = await getIssueLabel(context, issue);
+
+            if (issueLabels.includes(label)) {
+                core.info("found enhancement issue");
+                return "minor";
+            }
+        }
+        return "patch";
+    }
+
+    if (levels.includes("patch")) {
+        return "patch";
+    }
+
+    // we found only work in progress tags
+    return "none";
 }
 
 function isReleaseBranch(currentBranch, allowedBranches) {
@@ -252,14 +227,14 @@ function isReleaseBranch(currentBranch, allowedBranches) {
     return isReleasable.length > 0; // note that more than one patter may match a specific branch.
 }
 
-async function verifyBranch(octokit, parameters, context) {
+async function verifyBranch(parameters, context) {
 
     const forcedBranch = parameters.branch && parameters.branch.length;
     const branch = forcedBranch ? parameters.branch.trim() : context.ref.replace(/refs\/heads\//, "");
 
     core.info(`check forced branch ${branch}`);
 
-    const branchInfo = await loadBranch(octokit, context.ref, branch);
+    const branchInfo = await loadBranch(context.octokit, context.ref, branch);
 
     if (!branchInfo) {
         throw new Error(`unknown ${ forcedBranch ? "forced " : "" }branch ${branch} provided`);
@@ -268,12 +243,21 @@ async function verifyBranch(octokit, parameters, context) {
     return branchInfo;
 }
 
-async function applyTag(octokit, context, tag) {
+async function applyDry(context, tag) {
+    core.info(`Dry run. Do not apply ${tag} to ${context.repo}`);
+}
+
+async function applyTag(context, tag) {
+    if (!tag || tag === "") {
+        core.info("No tag to apply");
+        return;
+    }
+
     core.info(`apply new tag ${ tag } to ${ context.repo }`);
 
     const ref = `refs/tags/${ tag }`;
 
-    await octokit.rest.git.createRef({
+    await context.octokit.rest.git.createRef({
         owner: context.owner,
         repo: context.repo,
         ref: ref,
@@ -281,10 +265,10 @@ async function applyTag(octokit, context, tag) {
     });
 }
 
-async function checkStatic(octokit, parameters, context) {
+async function checkStatic(parameters, context, tagList) {
     const newTag = parameters.tag;
 
-    const doesTagExist = await checkTag(octokit, context, newTag);
+    const doesTagExist = checkTag(tagList, newTag);
 
     if (doesTagExist) {
         core.info(`tag already exists ${newTag} in ${ context.repo }`);
@@ -297,12 +281,11 @@ async function checkStatic(octokit, parameters, context) {
     return newTag;
 }
 
-async function checkSemver(octokit, parameters, context) {
+async function checkSemver(parameters, context, tagList) {
     core.info(`check semver tags before ref: ${ context.sha }`);
 
-    const latestTag = await getLatestTag(octokit);
-    const latestMainTag = await getLatestTag(octokit, false);
-    const versionTag = latestTag && latestTag.name ? latestTag.name : "0.0.0";
+    const latestTag = tagList.pop();
+    const latestMainTag = dropPreReleaseTags(tagList).pop();
 
     core.info(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
     core.info(`the previous main tag of the repository ${ JSON.stringify(latestMainTag, undefined, 2) }`);
@@ -316,72 +299,75 @@ async function checkSemver(octokit, parameters, context) {
 
     core.info(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
 
-    const version   = semver.clean(versionTag);
+    const versionTag    = latestTag && latestTag.name ? latestTag.name : "0.0.0";
+    const versionSemver = semver.clean(versionTag);
 
     // check if commits and issues point to a diffent release level
     // This filters hash tags for major, minor, patch and wip commit messages.
     core.info("check commits in branch");
 
     const bumpLevel = await checkMessages(
-        octokit,
-        context.sha, // start with the current commit
+        parameters,
+        context,
         latestMainTag ? latestMainTag.commit.sha : "", // terminate at the previous tag or at the initial commit
-        parameters.issueLabels // used for version bump
     );
 
     if (bumpLevel === "none") {
-        core.info("no commit messages found, avoid tagging");
+        core.info("no commit messages or work in progress found, avoid tagging");
         return "";
     }
 
     core.info(`commit messages force bump level to ${ bumpLevel }`);
-    let nextVersion = semver.inc(version, bumpLevel);
+
+    // major changes may ooccur between prereleases. In these cases the version number of the release will change.
+    let nextVersion = semver.inc(versionSemver, bumpLevel);
 
     if (!isReleaseBranch(context.branchName, parameters.releaseBranch)) {
         core.info(`${ context.branchName } is not a release branch, create a prelease tag`);
 
-        // FIXME: Issue 154
-        nextVersion = `${ nextVersion }_${context.branchName}`;
+        // find the latest tag on the same major release
+        // increase the prerelease number
+        nextVersion = semver.inc(nextVersion, "prerelease", context.branchName);
     }
 
     core.info( `bump tag to ${ nextVersion }` );
 
     // finally we want too verify that the tag does not exist already
     // IMPORTANT: Dont attach the new tag to parameters.tag because of possible side effects!
-    return checkStatic(octokit, {tag: nextVersion, force: parameters.force}, context);
+    return checkStatic({tag: nextVersion, force: parameters.force}, context, tagList);
 }
 
-function chooseTaggingStyle(octokit, parameters, context) {
+function chooseTaggingStyle(parameters, context) {
 
     // parameters.tag holds a custom tag that overrides the tagging style
     // if the tagging style is not semver, we also use the static versioning
     const checkFunction = parameters.tag || parameters.style !== "semver" ? checkStatic : checkSemver;
-    const dateTag = getDateStyle(parameters.style);
-
-    parameters.tag = dateTag === "" ? parameters.tag : dateTag;
+    const applyFunction = parameters.dryRun ? applyDry : applyTag;
 
     return {
-        check: () => checkFunction(octokit, parameters, context),
-        apply: (newVersionTag) => applyTag(octokit, context, newVersionTag)
+        nextVersion: (taglist) => checkFunction(parameters, context, taglist),
+        apply: (newVersionTag) => applyFunction(context, newVersionTag)
     };
 }
 
-async function action() {
-
+function setupContext(ghContext, parameters) {
     const context = {};
 
     context.owner = github.context.payload.repository.owner.login;
     context.repo  = github.context.payload.repository.name;
-    context.ref  = github.context.ref;
+    context.ref   = github.context.ref;
+
+    context.octokit = new github.getOctokit(parameters.token);
+}
+
+async function action() {
+    const parameters = getParameters();
+    const context = setupContext(github.context, parameters);
 
     core.info(`run for ${ context.owner } / ${ context.repo }`);
 
-    const parameters = getParameters();
-
-    // prepare octokit
-    const octokit = new github.getOctokit(parameters.token);
-
-    const branchInfo = await verifyBranch(octokit, parameters, context);
+    // check whether the versioning branch exists
+    const branchInfo = await verifyBranch(parameters, context);
 
     if (!branchInfo) {
         return;
@@ -395,18 +381,14 @@ async function action() {
 
     core.info(`active branch name is ${ context.branchName }`);
 
-    const handler = chooseTaggingStyle(octokit, parameters, context);
+    const handler = chooseTaggingStyle(parameters, context);
 
-    const nextVersion = await handler.check();
+    const tagList     = await getAllTags(context);
+    const nextVersion = await handler.nextVersion(tagList);
 
     core.setOutput("new-tag", nextVersion);
 
-    if ( !parameters.dryRun && nextVersion ) {
-        await handler.apply(nextVersion);
-    }
-    else {
-        core.info("dry run, don't perform tagging");
-    }
+    await handler.apply(nextVersion);
 }
 
 action()
