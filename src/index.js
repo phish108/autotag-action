@@ -6,25 +6,23 @@ const core   = require("@actions/core");
 const github = require("@actions/github");
 const semver = require("semver");
 
-const owner = github.context.payload.repository.owner.login;
-const repo = github.context.payload.repository.name;
-
 function getParameters() {
-    const retval = {},
-
-    Parameters = [
-        "branch", 
-        "bump", 
-        "dry-run", 
-        "github-token", 
-        "issue-labels" , 
-        "release-branch", 
-        "style", 
-        "tag", 
+    const retval = {};
+    const Parameters = [
+        "branch",
+        "bump",
+        "dry-run",
+        "force",
+        "github-token",
+        "issue-labels" ,
+        "release-branch",
+        "style",
+        "tag",
+        "version-prefix",
         "with-v"
-    ],
+    ];
 
-    Styles = [
+    const Styles = [
         "semver",
         "date",
         "datetime",
@@ -34,13 +32,30 @@ function getParameters() {
         "isodatetime"
     ];
 
-    Parameters.forEach((pname) => retval[pname] = core.getInput(pname));
+    // helper for direct value remapping
+    const Remap = {
+        "github-token": "token",
+        "issue-labels": "labels",
+        "release-branch": "releaseBranch",
+        "version-prefix": "prefix"
+    };
 
-    // fix parameters
-    retval["dryRun"] = retval["dry-run"].toLowerCase() === "false";
-    retval["withV"]  = retval["with-v"].toLowerCase() === false ? "" : "v";
+    Parameters.forEach((pname) => retval[pname] = core.getInput(pname));
+    Object.keys(Remap).map((pname) => retval[Remap[pname]] = retval[pname]);
+
+    // fix complex parameters
+    retval["dryRun"] = retval["dry-run"].toLowerCase() !== "false";
+    retval["force"] = retval["force"].toLowerCase() !== "false";
+    retval["withV"]  = retval["with-v"].toLowerCase() === "false" ? "" : retval.prefix;
 
     retval["style"] = Styles.includes(retval["style"]) ? retval["style"] :  "semver";
+
+    // ensure that everything is fine if the user passed an empty list
+    retval.issueLabels = retval.labels.split(",").map(label => label.trim());
+
+    if (!retval.issueLabels.length) {
+        retval.issueLabels = ["enhancement"];
+    }
 
     return retval;
 }
@@ -65,8 +80,8 @@ function getDateStyle(style) {
 
     if (style.match(/dot/)) {
         seperator = ".";
-    } 
- 
+    }
+
     if (style.match(/datetime/)) {
         date = date.concat([now.getHour(), now.getMinute()]);
     }
@@ -74,10 +89,10 @@ function getDateStyle(style) {
     return date.join(seperator);
 }
 
-async function checkTag(octokit, tagName) {
+async function checkTag(octokit, context, tagName) {
     const { data } = await octokit.rest.repos.listTags({
-        owner,
-        repo
+        owner: context.owner,
+        repo: context.repo
     });
 
     if (data) {
@@ -91,10 +106,10 @@ async function checkTag(octokit, tagName) {
     return false;
 }
 
-async function getLatestTag(octokit, boolAll = true) {
+async function getLatestTag(octokit, context, boolAll = true) {
     const { data } = await octokit.rest.repos.listTags({
-        owner,
-        repo
+        owner: context.owner,
+        repo: context.repo
     });
 
     // ensure the highest version number is the last element
@@ -118,10 +133,10 @@ async function getLatestTag(octokit, boolAll = true) {
     return result;
 }
 
-async function loadBranch(octokit, branch) {
+async function loadBranch(octokit, context, branch) {
     const result = await octokit.rest.git.listMatchingRefs({
-        owner,
-        repo,
+        owner: context.owner,
+        repo: context.repo,
         ref: `heads/${branch}`
     });
 
@@ -129,21 +144,23 @@ async function loadBranch(octokit, branch) {
     return result.data.shift();
 }
 
-async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
-    const sha = branchHeadSha;
+// FIXME this is messed up!
+async function checkMessages(octokit, parameters, context, tagSha) { // tagsha should be terminationSha
+    const issueTags = parameters.issueLabels;
 
     // core.info(`load commits since ${sha}`);
 
-    let releaseBump = "none";
+    let releaseBump = "patch";
 
     const result = await octokit.rest.repos.listCommits({
-        owner,
-        repo,
-        sha
+        owner: context.owner,
+        repo: context.repo,
+        sha: context.sha
     });
 
     if (!(result && result.data)) {
-        return releaseBump;
+        // nothing to do
+        return "none";
     }
 
     const wip   = new RegExp("#wip\\b");
@@ -198,8 +215,8 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
                 core.info(`check issue ${issue_number} for minor labels`);
 
                 const { data } = await octokit.rest.issues.get({
-                    owner,
-                    repo,
+                    owner: context.owner,
+                    repo: context.repo,
                     issue_number
                 });
 
@@ -225,165 +242,171 @@ async function checkMessages(octokit, branchHeadSha, tagSha, issueTags) {
     return releaseBump;
 }
 
-function isReleaseBranch(branchName, branchList) {
-    for (const branch of branchList.split(",").map(b => b.trim())) {
-        const testBranchName = new RegExp(branch);
+function isReleaseBranch(currentBranch, allowedBranches) {
+    // this algorithm accepts a few extra iterations for the sake of simplicity
+    const isReleasable = allowedBranches
+        .split(",")
+        .map(b => new RegExp(b.trim()).test(currentBranch))
+        .filter(e => e);
 
-        if (testBranchName.test(branchName)) {
-            return true;
+    return isReleasable.length > 0; // note that more than one patter may match a specific branch.
+}
+
+async function verifyBranch(octokit, parameters, context) {
+
+    const forcedBranch = parameters.branch && parameters.branch.length;
+    const branch = forcedBranch ? parameters.branch.trim() : context.ref.replace(/refs\/heads\//, "");
+
+    core.info(`check forced branch ${branch}`);
+
+    const branchInfo = await loadBranch(octokit, context.ref, branch);
+
+    if (!branchInfo) {
+        throw new Error(`unknown ${ forcedBranch ? "forced " : "" }branch ${branch} provided`);
+    }
+
+    return branchInfo;
+}
+
+async function applyTag(octokit, context, tag) {
+    core.info(`apply new tag ${ tag } to ${ context.repo }`);
+
+    const ref = `refs/tags/${ tag }`;
+
+    await octokit.rest.git.createRef({
+        owner: context.owner,
+        repo: context.repo,
+        ref: ref,
+        sha: context.sha
+    });
+}
+
+async function checkStatic(octokit, parameters, context) {
+    const newTag = parameters.tag;
+
+    const doesTagExist = await checkTag(octokit, context, newTag);
+
+    if (doesTagExist) {
+        core.info(`tag already exists ${newTag} in ${ context.repo }`);
+
+        if (!parameters.force) {
+            return "";
         }
     }
-    return false;
+
+    return newTag;
+}
+
+async function checkSemver(octokit, parameters, context) {
+    core.info(`check semver tags before ref: ${ context.sha }`);
+
+    const latestTag = await getLatestTag(octokit);
+    const latestMainTag = await getLatestTag(octokit, false);
+    const versionTag = latestTag && latestTag.name ? latestTag.name : "0.0.0";
+
+    core.info(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
+    core.info(`the previous main tag of the repository ${ JSON.stringify(latestMainTag, undefined, 2) }`);
+
+    core.setOutput("tag", versionTag);
+
+    if (latestTag && latestTag.commit.sha === context.sha) {
+        core.info("no new commits, avoid tagging");
+        return "";
+    }
+
+    core.info(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
+
+    const version   = semver.clean(versionTag);
+
+    // check if commits and issues point to a diffent release level
+    // This filters hash tags for major, minor, patch and wip commit messages.
+    core.info("check commits in branch");
+
+    const bumpLevel = await checkMessages(
+        octokit,
+        context.sha, // start with the current commit
+        latestMainTag ? latestMainTag.commit.sha : "", // terminate at the previous tag or at the initial commit
+        parameters.issueLabels // used for version bump
+    );
+
+    if (bumpLevel === "none") {
+        core.info("no commit messages found, avoid tagging");
+        return "";
+    }
+
+    core.info(`commit messages force bump level to ${ bumpLevel }`);
+    let nextVersion = semver.inc(version, bumpLevel);
+
+    if (!isReleaseBranch(context.branchName, parameters.releaseBranch)) {
+        core.info(`${ context.branchName } is not a release branch, create a prelease tag`);
+
+        // FIXME: Issue 154
+        nextVersion = `${ nextVersion }_${context.branchName}`;
+    }
+
+    core.info( `bump tag to ${ nextVersion }` );
+
+    // finally we want too verify that the tag does not exist already
+    // IMPORTANT: Dont attach the new tag to parameters.tag because of possible side effects!
+    return checkStatic(octokit, {tag: nextVersion, force: parameters.force}, context);
+}
+
+function chooseTaggingStyle(octokit, parameters, context) {
+
+    // parameters.tag holds a custom tag that overrides the tagging style
+    // if the tagging style is not semver, we also use the static versioning
+    const checkFunction = parameters.tag || parameters.style !== "semver" ? checkStatic : checkSemver;
+    const dateTag = getDateStyle(parameters.style);
+
+    parameters.tag = dateTag === "" ? parameters.tag : dateTag;
+
+    return {
+        check: () => checkFunction(octokit, parameters, context),
+        apply: (newVersionTag) => applyTag(octokit, context, newVersionTag)
+    };
 }
 
 async function action() {
-    core.info(`run for ${ owner } / ${ repo }`);
 
-    const params = getParameters(); 
+    const context = {};
 
-    // core.info(`payload ${JSON.stringify(github.context.payload.repository, undefined, 2)}`);
+    context.owner = github.context.payload.repository.owner.login;
+    context.repo  = github.context.payload.repository.name;
+    context.ref  = github.context.ref;
+
+    core.info(`run for ${ context.owner } / ${ context.repo }`);
+
+    const parameters = getParameters();
 
     // prepare octokit
-   
-    const octokit = new github.getOctokit(token);
+    const octokit = new github.getOctokit(parameters.token);
 
-    // load inputs
-    // const customTag     = core.getInput('custom-tag');
-    const dryRun        = core.getInput("dry-run").toLowerCase();
-    const level         = core.getInput("bump");
-    const forceBranch   = core.getInput("branch");
-    const releaseBranch = core.getInput("release-branch");
-    const withV         = core.getInput("with-v").toLowerCase() === "false" ? "" : "v";
-    const customTag     = core.getInput("tag");
-    const issueLabels   = core.getInput("issue-labels");
-
-    let branchInfo, nextVersion;
-
-    if (forceBranch) {
-        core.info(`check forced branch ${forceBranch}`);
-
-        branchInfo = await loadBranch(octokit, forceBranch);
-
-        if (!branchInfo) {
-            throw new Error("unknown branch provided");
-        }
-
-        core.info("branch confirmed, continue");
-    }
+    const branchInfo = await verifyBranch(octokit, parameters, context);
 
     if (!branchInfo) {
-        const activeBranch = github.context.ref.replace(/refs\/heads\//, "");
-
-        core.info(`load the history of activity-branch ${ activeBranch } from context ref ${ github.context.ref }`);
-        branchInfo  = await loadBranch(octokit, activeBranch);
-
-        if (!branchInfo) {
-            throw new Error(`failed to load branch ${ activeBranch }`);
-        }
-    }
-
-    // the sha for tagging
-    const sha        = branchInfo.object.sha;
-    const branchName = branchInfo.ref.split("/").pop();
-
-    core.info(`active branch name is ${ branchName }`);
-
-    if (customTag){
-        if (checkTag(octokit, customTag)) {
-            throw new Error(`tag already exists ${customTag}`);
-        }
-
-        core.setOutput("new-tag", customTag);
-    }
-    else {
-        core.info(`maching refs: ${ sha }`);
-
-        const latestTag = await getLatestTag(octokit);
-        const latestMainTag = await getLatestTag(octokit, false);
-
-        core.info(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
-        core.info(`the previous main tag of the repository ${ JSON.stringify(latestMainTag, undefined, 2) }`);
-
-        const versionTag = latestTag && latestTag.name ? latestTag.name : "0.0.0";
-
-        core.setOutput("tag", versionTag);
-
-        if (latestTag && latestTag.commit.sha === sha) {
-            core.info("no new commits, avoid tagging");
-
-            // in this case the new and the old tag are the same.
-            core.setOutput("new-tag", versionTag);
-            return;
-        }
-
-        core.info(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
-
-        const version   = semver.clean(versionTag);
-
-        nextVersion = semver.inc(
-            version,
-            "prerelease",
-            branchName
-        );
-
-        core.info(`default to prerelease version ${ nextVersion }`);
-
-        let issLabs = ["enhancement"];
-
-        if (issueLabels) {
-            const xlabels = issueLabels.split(",").map(lab => lab.trim());
-
-            if (xlabels.length) {
-                issLabs = xlabels;
-            }
-        }
-
-        // check if commits and issues point to a diffent release level
-        // This filters hash tags for major, minor, patch and wip commit messages.
-        core.info("commits in branch");
-
-        const msgLevel = await checkMessages(
-            octokit,
-            branchInfo.object.sha,
-            latestMainTag ? latestMainTag.commit.sha : "", // terminate at the previous tag
-            issLabs
-        );
-        // core.info(`commit messages suggest ${msgLevel} upgrade`);
-
-        if (isReleaseBranch(branchName, releaseBranch)) {
-            core.info(`${ branchName } is a release branch`);
-
-            if (msgLevel === "none") {
-                nextVersion = semver.inc(version, level);
-            }
-            else {
-                core.info(`commit messages force bump level to ${msgLevel}`);
-                nextVersion = semver.inc(version, msgLevel);
-            }
-        }
-
-        core.info( `bump tag ${ nextVersion }` );
-
-        core.setOutput("new-tag", nextVersion);
-    }
-
-    if (dryRun === "true") {
-        core.info("dry run, don't perform tagging");
         return;
     }
 
-    const newTag = `${ withV }${ nextVersion }`;
+    core.info("branch confirmed, continue");
 
-    core.info(`really add tag ${ customTag ? customTag : newTag }`);
+    // extract commit infos of the active context
+    context.sha        = branchInfo.object.sha;
+    context.branchName = branchInfo.ref.split("/").pop();
 
-    const ref = `refs/tags/${ customTag ? customTag : newTag }`;
+    core.info(`active branch name is ${ context.branchName }`);
 
-    await octokit.rest.git.createRef({
-        owner,
-        repo,
-        ref,
-        sha
-    });
+    const handler = chooseTaggingStyle(octokit, parameters, context);
+
+    const nextVersion = await handler.check();
+
+    core.setOutput("new-tag", nextVersion);
+
+    if ( !parameters.dryRun && nextVersion ) {
+        await handler.apply(nextVersion);
+    }
+    else {
+        core.info("dry run, don't perform tagging");
+    }
 }
 
 action()
