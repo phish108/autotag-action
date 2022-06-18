@@ -30,13 +30,17 @@ This input is useful if subsequent steps manipulate a different branch, which sh
 
 This input is useful if the release version has to be known for other steps before actually tagging the final commit. It is very handy if a build or cleanup steps will extend the initial commit or merge request. 
 
+### `force`
+
+**Optional** Normally, the action won't tag if nothing is to be tagged or the respective tag is already in use. This tag will force the tagging, so it is possible to move a tag. (Default: `FALSE`). This flag does not alter `dry-run`!
+
 ### `issue-labels`
 
 **Optional** A comma-separated list of issue labels that changes the bump level from `patch` to `minor` (Default: `enhancement`).
 
 ### `release-branch`
 
-**Optional** A comma-separated list of branch names or regular expressions. (Default: `master`)
+**Optional** A comma-separated list of branch names or regular expressions. The action will run only on the provided branche (Default: `main`/`master`) 
 
 ### `style`
 

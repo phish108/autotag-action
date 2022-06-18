@@ -13,6 +13,10 @@ inputs:
     description: "check if the action would succeed"
     required: false
     default: "FALSE"
+  force:
+    description: "force tagging even if the tag already exists"
+    required: false
+    default: "FALSE"
   bump: 
     description: "which part of the semver needs to be updated?"
     required: false
@@ -21,8 +25,12 @@ inputs:
     description: "force to tag a specific branch"
     required: false
     default: ""
+  version-prefix: 
+    description: "the version prefix to use. This does not imply with-v!"
+    required: false
+    default: "v"
   with-v: 
-    description: "use version prefix"
+    description: "tag with version prefix. uses the prefix provided by version-prefix."
     required: false
     default: "FALSE"
   style: 
