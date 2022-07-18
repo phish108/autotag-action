@@ -118,6 +118,7 @@ jobs:
          
     - if: ${{ steps.release.outputs.proceed == 'true' }}
       run: | 
+        echo "${{ steps.tagger.outputs.new-tag }}"
         npm ci
         npm run package
         npm --no-git-tag-version --allow-same-version version ${{ steps.tagger.outputs.new-tag }} 
