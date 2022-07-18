@@ -6,8 +6,17 @@ const core   = require("@actions/core");
 const github = require("@actions/github");
 const semver = require("semver");
 
+/**
+ * load the configuration and parameters for the action.
+ *
+ * This function will handle defaults and parameter validation to ensure
+ * that the action preparation has completed properly.
+ *
+ * @returns params
+ */
 function getParameters() {
-    const retval = {};
+    const params = {};
+
     const Parameters = [
         "branch",
         "bump",
@@ -40,31 +49,45 @@ function getParameters() {
         "version-prefix": "prefix"
     };
 
-    Parameters.forEach((pname) => retval[pname] = core.getInput(pname));
-    Object.keys(Remap).forEach((pname) => retval[Remap[pname]] = retval[pname]);
+    Parameters.forEach((pname) => params[pname] = core.getInput(pname));
+    Object.keys(Remap).forEach((pname) => params[Remap[pname]] = params[pname]);
 
     // fix complex parameters
-    retval["dryRun"] = retval["dry-run"].toLowerCase() !== "false";
-    retval["force"] = retval["force"].toLowerCase() !== "false";
-    retval["withV"]  = retval["with-v"].toLowerCase() === "false" ? "" : retval.prefix;
+    params["dryRun"] = params["dry-run"].toLowerCase() !== "false";
+    params["force"] = params["force"].toLowerCase() !== "false";
+    params["withV"]  = params["with-v"].toLowerCase() === "false" ? "" : params.prefix;
 
-    retval["style"] = Styles.includes(retval["style"]) ? retval["style"] :  "semver";
+    params["style"] = Styles.includes(params["style"]) ? params["style"] :  "semver";
 
     // ensure that everything is fine if the user passed an empty list
-    retval.issueLabels = retval.labels.split(",").map(label => label.trim());
+    params.issueLabels = params.labels.split(",").map(label => label.trim());
 
-    if (!retval.issueLabels.length) {
-        retval.issueLabels = ["enhancement"];
+    if (!params.issueLabels.length) {
+        params.issueLabels = ["enhancement"];
     }
 
     // set the date tag as forced tag, if set by style
-    const dateTag = getDateStyle(retval.style);
+    const dateTag = getDateStyle(params.style);
 
-    retval.tag = dateTag === "" ? retval.tag : dateTag;
+    params.tag = dateTag === "" ? params.tag : dateTag;
 
-    return retval;
+    return params;
 }
 
+/**
+ * creates a date-version string for the current date (and time).
+ *
+ * This function handles the following styles:
+ * - date (reverse date)
+ * - datetime (reverse timestamp)
+ * - isodate (iso-style date)
+ * - isodatetime (iso-style timestamp. replaces colons and dots to dashes)
+ * - dotdate (semver style dates)
+ * - dotdatetime (semver style timestamp, down to a minute)
+ *
+ * @param {String} style
+ * @returns dateVersion
+ */
 function getDateStyle(style) {
     if (! style.match(/date/) ) {
         return "";
@@ -73,11 +96,9 @@ function getDateStyle(style) {
     const now = new Date();
 
     if (style.match(/iso/)) {
-        if (style.match(/datetime/)) {
-            return now.toISOString().replace(/:/g,"-").replace(/-\d\d\.\d+Z$/, "");
-        }
+        const cleanup = style.match(/datetime/) ? /-\d\d\.\d+Z$/ : /T.+$/;
 
-        return now.toISOString().replace(/:/g,"-").replace(/T.+$/, "");
+        return now.toISOString().replace(/:/g,"-").replace(cleanup, "");
     }
 
     let seperator = "";
@@ -94,12 +115,25 @@ function getDateStyle(style) {
     return date.join(seperator);
 }
 
+/**
+ * Verifies that the new tag does not already exist.
+ *
+ * @param {Array(String)} tagList
+ * @param {String} tagName
+ * @returns bool
+ */
 async function checkTag(tagList, tagName) {
     const result = tagList.filter(tag => tag.name === tagName);
 
     return result.length > 0;
 }
 
+/**
+ * Fetches all tags for the active repository
+ *
+ * @param {octokit} context - the github context
+ * @returns tagList
+ */
 async function getAllTags(context) {
     const { data } = await context.octokit.rest.repos.listTags({
         owner: context.owner,
@@ -116,10 +150,23 @@ async function getAllTags(context) {
     return allVTags;
 }
 
+/**
+ * drops all prerelease tags from the tag list.
+ *
+ * @param {Array(String)} tagList
+ * @returns cleanedTagList
+ */
 function dropPreReleaseTags(tagList) {
     return tagList.filter((tag) => semver.prerelease(tag.name) === null);
 }
 
+/**
+ * loads an external branch if needed.
+ *
+ * @param {*} context
+ * @param {*} branch
+ * @returns branchContext
+ */
 async function loadBranch(context, branch) {
     const result = await context.octokit.rest.git.listMatchingRefs({
         owner: context.owner,
@@ -131,6 +178,13 @@ async function loadBranch(context, branch) {
     return result.data.shift();
 }
 
+/**
+ * Fetches the lables of an issue.
+ *
+ * @param {*} context - the GH context
+ * @param {Number} issue_number - the issue number
+ * @returns list of labels for the issue
+ */
 async function getIssueLabel(context, issue_number) {
     const { data } = await context.octokit.rest.issues.get({
         owner: context.owner,
@@ -141,7 +195,15 @@ async function getIssueLabel(context, issue_number) {
     return data ? data.labels : [];
 }
 
-async function messageToBumpLevel(context, message) {
+/**
+ * returns the bump level according to one commit message
+ *
+ * This function is used by the map-reduce logic.
+ *
+ * @param {*} message - the commit  message
+ * @returns bumpLevel
+ */
+async function messageToBumpLevel(message) {
     const wip   = new RegExp(/#wip\b/);
     const major = new RegExp(/#major\b/);
     const minor = new RegExp(/#minor\b/);
@@ -167,7 +229,14 @@ async function messageToBumpLevel(context, message) {
     return "patch";
 }
 
-// tagSha refers to the previous tagged commit
+/**
+ * Determines the bump level according to issues and commit messages
+ *
+ * @param {*} parameters - the action config
+ * @param {*} context - the GH Context
+ * @param {*} tagSha - refers to the previously tagged commit
+ * @returns finalBumpLevel
+ */
 async function checkMessages(parameters, context, tagSha) {
     const issueLabels = parameters.issueLabels;
 
@@ -217,6 +286,15 @@ async function checkMessages(parameters, context, tagSha) {
     return "none";
 }
 
+/**
+ * check if the current branch is in fact a release branch
+ *
+ * if the current branch is not set for releases avoid tagging.
+ *
+ * @param {*} currentBranch
+ * @param {*} allowedBranches
+ * @returns boolean
+ */
 function isReleaseBranch(currentBranch, allowedBranches) {
     // this algorithm accepts a few extra iterations for the sake of simplicity
     const isReleasable = allowedBranches
@@ -227,6 +305,13 @@ function isReleaseBranch(currentBranch, allowedBranches) {
     return isReleasable.length > 0; // note that more than one patter may match a specific branch.
 }
 
+/**
+ * verify whether a custom branch exists
+ *
+ * @param {*} parameters - action parameters
+ * @param {*} context - gh action contexts
+ * @returns branchInfo
+ */
 async function verifyBranch(parameters, context) {
 
     const forcedBranch = parameters.branch && parameters.branch.length;
@@ -243,10 +328,23 @@ async function verifyBranch(parameters, context) {
     return branchInfo;
 }
 
+/**
+ * dryRun helpe that does nothing but reporting that the action runs in dryRun mode.
+ *
+ * @param {*} context - ghcontext for API conformance
+ * @param {*} tag - the tag to apply foro API conformance
+ */
 async function applyDry(context, tag) {
     core.info(`Dry run. Do not apply ${tag} to ${context.repo}`);
 }
 
+/**
+ * applies a new tag to the current HEAD
+ *
+ * @param {*} context - ghcontext for API conformance
+ * @param {*} tag - the tag to apply foro API conformance
+ * @returns nothing
+ */
 async function applyTag(context, tag) {
     if (!tag || tag === "") {
         core.info("No tag to apply");
@@ -265,6 +363,14 @@ async function applyTag(context, tag) {
     });
 }
 
+/**
+ * verify that a given tag does not already exist in the repo
+ *
+ * @param {*} parameters
+ * @param {*} context
+ * @param {*} tagList
+ * @returns newTag
+ */
 async function checkStatic(parameters, context, tagList) {
     const newTag = parameters.tag;
 
@@ -281,6 +387,14 @@ async function checkStatic(parameters, context, tagList) {
     return newTag;
 }
 
+/**
+ * find and check a new semver tag.
+ *
+ * @param {*} parameters - action config parameters
+ * @param {*} context - gh context
+ * @param {*} tagList - the repos tags
+ * @returns newTag
+ */
 async function checkSemver(parameters, context, tagList) {
     core.info(`check semver tags before ref: ${ context.sha }`);
 
@@ -337,6 +451,22 @@ async function checkSemver(parameters, context, tagList) {
     return checkStatic({tag: nextVersion, force: parameters.force}, context, tagList);
 }
 
+/**
+ * choses the tagging handlers depending on the requested tagging style
+ *
+ * This factory function returns an Object with two callback functions.
+ *
+ * - checkFunction - this checks and generates a new version tag.
+ * - applyFunction - this applies the new version tag if needed.
+ *
+ * The logic of this handler is to simplify the main action's logic to a pure functional approach.
+ * This function encapsulates the action's parameters and the context, so the main function just
+ * passes the dynamic parts to the function.
+ *
+ * @param {*} parameters - the actions config
+ * @param {*} context - github context
+ * @returns taggingTandlers
+ */
 function chooseTaggingStyle(parameters, context) {
 
     // parameters.tag holds a custom tag that overrides the tagging style
@@ -350,16 +480,27 @@ function chooseTaggingStyle(parameters, context) {
     };
 }
 
-function setupContext(ghContext, parameters) {
+/**
+ * unused?
+ *
+ * @param {*} ghContext
+ * @param {*} config - the actions config
+ */
+function setupContext(ghContext, config) {
     const context = {};
 
-    context.owner = github.context.payload.repository.owner.login;
-    context.repo  = github.context.payload.repository.name;
-    context.ref   = github.context.ref;
+    context.owner = ghContext.context.payload.repository.owner.login;
+    context.repo  = ghContext.context.payload.repository.name;
+    context.ref   = ghContext.context.ref;
 
-    context.octokit = new github.getOctokit(parameters.token);
+    context.octokit = new ghContext.getOctokit(config.token);
 }
 
+/**
+ * the action's main function.
+ *
+ * @returns nothing
+ */
 async function action() {
     const parameters = getParameters();
     const context = setupContext(github.context, parameters);
