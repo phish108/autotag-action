@@ -1,6 +1,6 @@
 # Autotag
 
-A lightning fast autotagger for `semver`-tagging. It helps you to stay on top of your release management and release your code quickly and often through GitHub's tag-based release functions just by pushing to your repository.
+A lightning fast autotagger for `semver`-tagging. It helps you to stay on top of your release management and release your code quickly and often through GitHub's tag-based release functions just by pushing to your repository. Alternatively, this actions allows date and date-time based versioning, which is handy for container builds. 
 
 This action scans your commit messages for fixed issues and semver changes. Use `#major`, `#minor`, or `#patch` tags in your commit messages and autotagger will increase your version tags accordingly. If a commit message fixes an issue (using `fixes #issuenbr` style messages), then `autotag-action` will check wether the corresponding issue was labled as `enhancement` that triggers a `minor` release, or a bug fix that will be treated as a `patch`. `autotag-action` also supports prereleases for non-release branches and custom tags.
 
@@ -14,19 +14,9 @@ This action has been inspired by [anothrNick/github-tag-action](/anothrNick/gith
 
 **Required** The github token for accessing the repository.
 
-### `dry-run`
-
-**Optional**  If the value is not `FALSE` (case insensitive), the action performs all steps, but omit the actual tagging. (Default: `FALSE`).
-
-This input is useful if the release version has to be known for other steps before actually tagging the final commit. It is very handy if a build or cleanup steps will extend the initial commit or merge request. 
-
 ### `bump`
 
 **Optional** semver bumping. Valid values are `major`, `minor` or `patch` (Default: `patch`)
-
-### `with-v`
-
-**Optional** If not `FALSE` (case insensitive), then the action adds a `v` to prefix the tag. (Default: `FALSE`)
 
 ### `branch`
 
@@ -34,27 +24,57 @@ This input is useful if the release version has to be known for other steps befo
 
 This input is useful if subsequent steps manipulate a different branch, which should get tagged. This is useful when tagging of merge requests. 
 
-### `release-branch`
+### `dry-run`
 
-**Optional** A comma-separated list of branch names or regular expressions. (Default: `master`)
+**Optional**  If the value is not `FALSE` (case insensitive), the action performs all steps, but omit the actual tagging. (Default: `FALSE`).
 
-### `tag`
+This input is useful if the release version has to be known for other steps before actually tagging the final commit. It is very handy if a build or cleanup steps will extend the initial commit or merge request. 
 
-**Optional** Custom tag to be added to the current SHA. Will not perform any version bumping, but adds the provided tag.
+### `force`
+
+**Optional** Normally, the action won't tag if nothing is to be tagged or the respective tag is already in use. This tag will force the tagging, so it is possible to move a tag. (Default: `FALSE`). This flag does not alter `dry-run`!
 
 ### `issue-labels`
 
 **Optional** A comma-separated list of issue labels that changes the bump level from `patch` to `minor` (Default: `enhancement`).
 
+### `release-branch`
+
+**Optional** A comma-separated list of branch names or regular expressions. The action will run only on the provided branche (Default: `main`/`master`) 
+
+### `style`
+
+**Optional** The style of version tagging to use. (Default: `semver`). 
+
+Possible values are: 
+
+- `semver`
+- `date`
+- `datetime`
+- `isodate`
+- `isodatetime`
+- `dotdate`
+- `dotdatetime`
+
+If another style is used, the autotag-action falls back to `semver`. 
+
+### `tag`
+
+**Optional** Custom tag to be added to the current SHA. Will not perform any version bumping, but adds the provided tag.
+
+### `with-v`
+
+**Optional** If not `FALSE` (case insensitive), then the action adds a `v` to prefix the tag. (Default: `FALSE`)
+
 ## Outputs
 
 ### `tag`
 
-The previous latest tag before this action ran. This output is unavailable, when the `tag` input is used.
+The previous (latest) tag before this action ran. This output is unavailable, when the `tag` input is used.
 
 ### `new-tag`
 
-The latest tag after this action ran.
+The latest tag after this action ran. This is not set, if the latest tag is on the latest commit in the current branch.
 
 ## Example Usage
 

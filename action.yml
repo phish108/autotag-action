@@ -7,10 +7,14 @@ branding:
 inputs:
   github-token:  # id of input
     default: ${{ github.token }}
-    required: false
+    required: false # not required, so default can do its magic
     description: 'the GH token to connect to github from the action'
   dry-run: 
     description: "check if the action would succeed"
+    required: false
+    default: "FALSE"
+  force:
+    description: "force tagging even if the tag already exists"
     required: false
     default: "FALSE"
   bump: 
@@ -21,10 +25,22 @@ inputs:
     description: "force to tag a specific branch"
     required: false
     default: ""
+  version-prefix: 
+    description: "the version prefix to use. This does not imply with-v!"
+    required: false
+    default: "v"
   with-v: 
-    description: "use version prefix"
+    description: "tag with version prefix. uses the prefix provided by version-prefix."
     required: false
     default: "FALSE"
+  style: 
+    description: "versioning style"
+    required: false
+    default: "semver"
+  tag: 
+    description: "use custom tag"
+    required: false
+    default: ""
   release-branch: 
     description: "provide the names from which branches to release"
     required: false
