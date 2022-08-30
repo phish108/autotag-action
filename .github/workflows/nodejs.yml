@@ -44,7 +44,7 @@ jobs:
         dry-run: 'TRUE'
     
     - name: Autotag Draft
-      uses: phish108/autotag-action@master
+      uses: cjmanca/autotag-action@master
       id: taggerTest
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -77,7 +77,7 @@ jobs:
   build:
     needs: verify
 
-    if: github.actor == 'phish108' || startsWith(github.actor, 'dependabot')
+    if: github.actor == 'cjmanca' || startsWith(github.actor, 'dependabot')
     runs-on: ubuntu-latest
 
     steps:
@@ -109,7 +109,7 @@ jobs:
         npm ci
         npm run package
         npm --no-git-tag-version --allow-same-version version ${{ steps.tagger.outputs.new-tag }} 
-        sed -ri "s/phish108\/autotag-action@[0-9]*\.[0-9]*\.[0-9]*/phish108\/autotag-action@${{ steps.tagger.outputs.new-tag }}/g" README.md
+        sed -ri "s/cjmanca\/autotag-action@[0-9]*\.[0-9]*\.[0-9]*/cjmanca\/autotag-action@${{ steps.tagger.outputs.new-tag }}/g" README.md
         git commit -m "updated dist file for $GITSHA" -a 
       env:
         GITSHA: ${{ github.sha }}
