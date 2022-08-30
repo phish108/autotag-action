@@ -23,7 +23,7 @@ jobs:
 
   merge: 
     needs: lint
-    if: github.actor == 'cjmanca' ||  startsWith(github.actor, 'dependabot')
+    if: github.actor == 'phish108' ||  startsWith(github.actor, 'dependabot')
     
     runs-on: ubuntu-latest
 
@@ -50,7 +50,7 @@ jobs:
         branch: master 
     
     - name: Autotag Draft
-      uses: cjmanca/autotag-action@master
+      uses: phish108/autotag-action@master
       id: taggerTest
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -82,7 +82,7 @@ jobs:
 
   build:
     needs: verify
-    if: github.actor == 'cjmanca' || startsWith(github.actor, 'dependabot')
+    if: github.actor == 'phish108' || startsWith(github.actor, 'dependabot')
 
     runs-on: ubuntu-latest
 
