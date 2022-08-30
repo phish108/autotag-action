@@ -12064,7 +12064,8 @@ async function checkTag(octokit, tagName) {
     return false;
 }
 
-async function getLatestTag(octokit, boolAll = true) {
+
+async function getLatestTag(octokit, branchName = "", boolAll = true) {
     const { data } = await octokit.rest.repos.listTags({
         owner,
         repo
@@ -12077,6 +12078,13 @@ async function getLatestTag(octokit, boolAll = true) {
 
     allVTags
         .sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
+
+    if (branchName !== "") {
+        const filtered = allVTags.filter((b) => semver.prerelease(b.name) !== null && semver.prerelease(b.name).includes(branchName));
+        const result = filtered.pop();
+
+        return result;
+    }
 
     if (boolAll) {
         return allVTags.pop();
@@ -12270,12 +12278,19 @@ async function action() {
         core.info(`maching refs: ${ sha }`);
 
         const latestTag = await getLatestTag(octokit);
-        const latestMainTag = await getLatestTag(octokit, false);
+        const latestTagForBranch = await getLatestTag(octokit, branchName);
+        const latestMainTag = await getLatestTag(octokit, "", false);
 
         core.info(`the previous tag of the repository ${ JSON.stringify(latestTag, undefined, 2) }`);
+        core.info(`the previous tag of the branch ${ JSON.stringify(latestTagForBranch, undefined, 2) }`);
         core.info(`the previous main tag of the repository ${ JSON.stringify(latestMainTag, undefined, 2) }`);
 
-        const versionTag = latestTag && latestTag.name ? latestTag.name : "0.0.0";
+        var versionTag = latestTag && latestTag.name ? latestTag.name : "0.0.0";
+
+        if (latestTagForBranch && latestTagForBranch.name && semver.eq(semver.coerce(latestTag.name), semver.coerce(latestTagForBranch.name))) {
+            // same release cycle, so use branch specific tag
+            versionTag = latestTagForBranch.name;
+        }
 
         core.setOutput("tag", versionTag);
 
