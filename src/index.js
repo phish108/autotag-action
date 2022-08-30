@@ -26,6 +26,7 @@ async function checkTag(octokit, tagName) {
     return false;
 }
 
+
 async function getLatestTag(octokit, branchName = "", boolAll = true) {
     const { data } = await octokit.rest.repos.listTags({
         owner,
