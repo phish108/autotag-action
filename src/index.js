@@ -43,7 +43,6 @@ async function getLatestTag(octokit, branchName = "", boolAll = true) {
     if (branchName !== "") {
         const filtered = allVTags.filter((b) => semver.prerelease(b.name) !== null && semver.prerelease(b.name).includes(branchName));
         const result = filtered.pop();
-
         return result;
     }
 
