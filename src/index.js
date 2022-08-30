@@ -268,7 +268,7 @@ async function action() {
         core.info(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
 
         const version   = semver.clean(versionTag);
-
+ 
         nextVersion = semver.inc(
             version,
             "prerelease",
