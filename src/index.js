@@ -40,8 +40,7 @@ async function getLatestTag(octokit, branchName = "", boolAll = true) {
     allVTags
         .sort((a, b) => semver.compare(semver.clean(a.name), semver.clean(b.name)));
 
-    if (branchName != "")
-    {
+    if (branchName != "") {
         const filtered = allVTags.filter((b) => semver.prerelease(b.name).includes(branchName));
         const result = filtered.pop();
 
@@ -247,10 +246,9 @@ async function action() {
         core.info(`the previous tag of the branch ${ JSON.stringify(latestTagForBranch, undefined, 2) }`);
         core.info(`the previous main tag of the repository ${ JSON.stringify(latestMainTag, undefined, 2) }`);
 
-        const versionTag = latestTag && latestTag.name ? latestTag.name : "0.0.0";
+        var versionTag = latestTag && latestTag.name ? latestTag.name : "0.0.0";
 
-        if (latestTagForBranch && latestTagForBranch.name && semver.eq(semver.coerce(latestTag.name), semver.coerce(latestTagForBranch.name)))
-        {
+        if (latestTagForBranch && latestTagForBranch.name && semver.eq(semver.coerce(latestTag.name), semver.coerce(latestTagForBranch.name))) {
             // same release cycle, so use branch specific tag
             versionTag = latestTagForBranch.name;
         }
@@ -268,7 +266,7 @@ async function action() {
         core.info(`The repo tags: ${ JSON.stringify(latestTag, undefined, 2) }`);
 
         const version   = semver.clean(versionTag);
- 
+
         nextVersion = semver.inc(
             version,
             "prerelease",
