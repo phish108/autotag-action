@@ -17,6 +17,10 @@ inputs:
     description: "which part of the semver needs to be updated?"
     required: false
     default: "patch"
+  tag: 
+    description: "custom tag to be added to the current SHA"
+    required: false
+    default: ""
   branch: 
     description: "force to tag a specific branch"
     required: false
