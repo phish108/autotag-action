@@ -4,7 +4,7 @@ A lightning fast autotagger for `semver`-tagging. It helps you to stay on top of
 
 This action scans your commit messages for fixed issues and semver changes. Use `#major`, `#minor`, or `#patch` tags in your commit messages and autotagger will increase your version tags accordingly. If a commit message fixes an issue (using `fixes #issuenbr` style messages), then `autotag-action` will check wether the corresponding issue was labled as `enhancement` that triggers a `minor` release, or a bug fix that will be treated as a `patch`. `autotag-action` also supports prereleases for non-release branches and custom tags.
 
-This action has been inspired by [anothrNick/github-tag-action](/anothrNick/github-tag-action), but is written completely in javascript and runs directly within the runner.
+This action has been inspired by [anothrNick/github-tag-action](https://github.com/anothrNick/github-tag-action), but is written completely in javascript and runs directly within the runner.
 
 `autotag-action` uses [`Octokit`](https://octokit.github.io/rest.js) for tagging and does not depend on checking out the repository. 
 
