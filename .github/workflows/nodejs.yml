@@ -64,7 +64,7 @@ jobs:
     steps:
       - name: check changes
         id: release
-        uses: phish108/release-check@1.0.14
+        uses: phish108/release-check@1.0.15
       - name: only dev changes
         run: exit 0
         if: ${{ steps.release.outputs.hold_development == 'true' }}
@@ -83,7 +83,7 @@ jobs:
     steps:
     - name: check changes
       id: release
-      uses: phish108/release-check@1.0.14
+      uses: phish108/release-check@1.0.15
       
     ## Skip building if nothing in the business logic has changed 
     - run: exit 0
