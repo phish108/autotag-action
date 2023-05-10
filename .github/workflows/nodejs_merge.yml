@@ -14,10 +14,10 @@ jobs:
     runs-on: ubuntu-latest
     
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/setup-node@v1
+    - uses: actions/checkout@v3
+    - uses: actions/setup-node@v3
       with:
-        node-version: 18
+        node-version: 16
     - run: npm ci
     - run: npm run lint
 
@@ -28,10 +28,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
     
     - name: automerge
-      uses: "pascalgn/automerge-action@v0.13.1"
+      uses: "pascalgn/automerge-action@v0.15.6"
       env:
         GITHUB_TOKEN: "${{ secrets.GITHUB_TOKEN }}"
         MERGE_LABELS: ""
@@ -43,7 +43,7 @@ jobs:
 
     steps:
     - id: tagger
-      uses: phish108/autotag-action@1.1.47
+      uses: phish108/autotag-action@1.1.55
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         dry-run: 'TRUE'
@@ -70,7 +70,7 @@ jobs:
     steps:
       - name: check changes
         id: release
-        uses: phish108/release-check@1.0.11
+        uses: phish108/release-check@1.0.12
       - name: only dev changes (from PR)
         run: exit 1
         if: ${{ steps.release.outputs.hold_development == 'true' }}
@@ -89,10 +89,11 @@ jobs:
     strategy:
       matrix:
         node-version: 
+        - 16.x
         - 18.x
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
       with:
           ref: master
     - run: |
@@ -101,16 +102,16 @@ jobs:
 
     - name: check changes
       id: release
-      uses: phish108/release-check@1.0.11
+      uses: phish108/release-check@1.0.12
 
     - name: Use Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v1
+      uses: actions/setup-node@v3
       with:
         node-version: ${{ matrix.node-version }} 
     
     - id: tagger
       if: ${{ steps.release.outputs.proceed == 'true' }}
-      uses: phish108/autotag-action@1.1.47
+      uses: phish108/autotag-action@1.1.55
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         branch: master
@@ -134,7 +135,7 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
     
-    - uses: phish108/autotag-action@1.1.47
+    - uses: phish108/autotag-action@1.1.55
       if: ${{ steps.release.outputs.proceed == 'true' }}
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
