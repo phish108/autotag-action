@@ -43,7 +43,7 @@ jobs:
 
     steps:
     - id: tagger
-      uses: phish108/autotag-action@1.1.55
+      uses: phish108/autotag-action@1.1.56
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         dry-run: 'TRUE'
@@ -70,7 +70,7 @@ jobs:
     steps:
       - name: check changes
         id: release
-        uses: phish108/release-check@1.0.12
+        uses: phish108/release-check@1.0.13
       - name: only dev changes (from PR)
         run: exit 1
         if: ${{ steps.release.outputs.hold_development == 'true' }}
@@ -102,7 +102,7 @@ jobs:
 
     - name: check changes
       id: release
-      uses: phish108/release-check@1.0.12
+      uses: phish108/release-check@1.0.13
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
@@ -111,7 +111,7 @@ jobs:
     
     - id: tagger
       if: ${{ steps.release.outputs.proceed == 'true' }}
-      uses: phish108/autotag-action@1.1.55
+      uses: phish108/autotag-action@1.1.56
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         branch: master
@@ -135,7 +135,7 @@ jobs:
       with:
         github_token: ${{ secrets.GITHUB_TOKEN }}
     
-    - uses: phish108/autotag-action@1.1.55
+    - uses: phish108/autotag-action@1.1.56
       if: ${{ steps.release.outputs.proceed == 'true' }}
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
