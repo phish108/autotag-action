@@ -70,7 +70,7 @@ jobs:
     steps:
       - name: check changes
         id: release
-        uses: phish108/release-check@1.0.13
+        uses: phish108/release-check@1.0.14
       - name: only dev changes (from PR)
         run: exit 1
         if: ${{ steps.release.outputs.hold_development == 'true' }}
@@ -102,7 +102,7 @@ jobs:
 
     - name: check changes
       id: release
-      uses: phish108/release-check@1.0.13
+      uses: phish108/release-check@1.0.14
 
     - name: Use Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v3
