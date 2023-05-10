@@ -15,7 +15,6 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "module",
   "bugs": {
     "url": "https://github.com/phish108/autotag-action/issues"
   },
@@ -27,10 +26,10 @@
   },
   "devDependencies": {
     "@eslint/js": "8.40.0",
-    "globals": "13.20.0",
-    "@vercel/ncc": "0.34.0",
+    "@vercel/ncc": "0.36.1",
     "chai": "4.3.6",
     "eslint": "8.40.0",
+    "globals": "13.20.0",
     "mocha": "10.0.0"
   }
 }

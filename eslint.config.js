@@ -1,10 +1,10 @@
 // new flat file configuration for eslint
 // https://eslint.org/docs/latest/use/configure/configuration-files-new
 
-import js from "@eslint/js";
-import globals from "globals";
+const js = require("@eslint/js");
+const globals = require("globals");
 
-export default [
+module.exports = [
     js.configs.recommended,
     {
         languageOptions: {
