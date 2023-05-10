@@ -39,5 +39,5 @@ outputs:
   tag: # id of output
     description: 'latest tag'
 runs:
-  using: 'node18'
+  using: 'node16'
   main: 'dist/index.js'
